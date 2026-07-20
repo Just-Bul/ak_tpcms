@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model category_table {
+  category_id              Int                        @id @default(autoincrement())
+  category                 String                     @unique(map: "uq_category") @db.VarChar(255)
+  placement_category_table placement_category_table[]
+  student_table            student_table[]
+}
+
+model department_table {
+  department_id              Int                          @id @default(autoincrement())
+  department_name            String?                      @unique(map: "department_name") @db.VarChar(255)
+  is_active                  Boolean?                     @default(true)
+  coordinator_id             Int?
+  user_table                 user_table?                  @relation(fields: [coordinator_id], references: [user_id], onDelete: Restrict, map: "fk_department_coordinator")
+  placement_department_table placement_department_table[]
+  student_table              student_table[]
+  training_department_table  training_department_table[]
+
+  @@index([coordinator_id], map: "fk_department_coordinator")
+}
+
+model division_table {
+  division_id                                                             Int               @id @default(autoincrement())
+  division                                                                String?           @unique(map: "uq_division") @db.VarChar(255)
+  placement_table_placement_table_min_tenth_division_idTodivision_table   placement_table[] @relation("placement_table_min_tenth_division_idTodivision_table")
+  placement_table_placement_table_min_twelfth_division_idTodivision_table placement_table[] @relation("placement_table_min_twelfth_division_idTodivision_table")
+  student_table_student_table_tenth_division_idTodivision_table           student_table[]   @relation("student_table_tenth_division_idTodivision_table")
+  student_table_student_table_twelfth_division_idTodivision_table         student_table[]   @relation("student_table_twelfth_division_idTodivision_table")
+}
+
+model gender_table {
+  gender_id     Int             @id @default(autoincrement())
+  gender        String          @unique(map: "uq_gender") @db.VarChar(255)
+  student_table student_table[]
+}
+
+model organization_table {
+  user_id      Int           @id
+  approval_id  Int?          @default(1)
+  document_url String?       @db.VarChar(255)
+  is_active    Boolean?      @default(true)
+  remarks      String?       @db.Text
+  sector_id    Int?
+  sector_table sector_table? @relation(fields: [sector_id], references: [sector_id], map: "fk_organization_sector")
+  user_table   user_table    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "organization_table_ibfk_1")
+  status_table status_table? @relation(fields: [approval_id], references: [status_id], onDelete: Restrict, onUpdate: Restrict, map: "organization_table_ibfk_2")
+
+  @@index([approval_id], map: "approval_id")
+  @@index([sector_id], map: "fk_organization_sector")
+}
+
+model placement_application_table {
+  placement_id       Int
+  student_id         Int
+  status_id          Int?            @default(1)
+  date_of_submission DateTime?       @default(dbgenerated("(curdate())")) @db.Date
+  remarks            String?         @db.Text
+  placement_table    placement_table @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_1")
+  student_table      student_table   @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_2")
+  status_table       status_table?   @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_3")
+
+  @@id([placement_id, student_id])
+  @@index([placement_id], map: "placement_id")
+  @@index([status_id], map: "status_id")
+  @@index([student_id], map: "student_id")
+}
+
+model placement_category_table {
+  placement_id    Int
+  category_id     Int
+  placement_table placement_table @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_category_table_ibfk_1")
+  category_table  category_table  @relation(fields: [category_id], references: [category_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_category_table_ibfk_2")
+
+  @@id([placement_id, category_id])
+  @@index([category_id], map: "category_id")
+  @@index([placement_id], map: "placement_id")
+}
+
+model placement_department_table {
+  placement_id     Int
+  department_id    Int
+  placement_table  placement_table  @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_department_table_ibfk_1")
+  department_table department_table @relation(fields: [department_id], references: [department_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_department_table_ibfk_2")
+
+  @@id([placement_id, department_id])
+  @@index([department_id], map: "department_id")
+  @@index([placement_id], map: "placement_id")
+}
+
+model placement_semester_table {
+  placement_id    Int
+  semester_id     Int
+  placement_table placement_table @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_semester_table_ibfk_1")
+  semester_table  semester_table  @relation(fields: [semester_id], references: [semester_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_semester_table_ibfk_2")
+
+  @@id([placement_id, semester_id])
+  @@index([placement_id], map: "placement_id")
+  @@index([semester_id], map: "semester_id")
+}
+
+model placement_table {
+  placement_id                                                           Int                           @id @default(autoincrement())
+  creator_id                                                             Int
+  title                                                                  String                        @db.VarChar(255)
+  description                                                            String?                       @db.Text
+  min_cgpa                                                               Decimal?                      @db.Decimal(4, 2)
+  min_tenth_division_id                                                  Int?
+  min_twelfth_division_id                                                Int?
+  image_url                                                              String?                       @db.VarChar(255)
+  has_backlog                                                            Boolean?
+  salary_lower                                                           Int?
+  salary_upper                                                           Int?
+  created_on                                                             DateTime                      @default(now()) @db.Timestamp(0)
+  updated_on                                                             DateTime                      @default(now()) @db.Timestamp(0)
+  last_date_of_submission                                                DateTime?                     @db.Date
+  is_active                                                              Boolean?                      @default(true)
+  start_date                                                             DateTime                      @default(dbgenerated("(curdate())")) @db.Date
+  end_date                                                               DateTime                      @default(dbgenerated("(curdate() + interval 15 day)")) @db.Date
+  placement_application_table                                            placement_application_table[]
+  placement_category_table                                               placement_category_table[]
+  placement_department_table                                             placement_department_table[]
+  placement_semester_table                                               placement_semester_table[]
+  user_table                                                             user_table                    @relation(fields: [creator_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_table_ibfk_1")
+  division_table_placement_table_min_tenth_division_idTodivision_table   division_table?               @relation("placement_table_min_tenth_division_idTodivision_table", fields: [min_tenth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "placement_table_ibfk_2")
+  division_table_placement_table_min_twelfth_division_idTodivision_table division_table?               @relation("placement_table_min_twelfth_division_idTodivision_table", fields: [min_twelfth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "placement_table_ibfk_3")
+
+  @@index([creator_id], map: "creator_id")
+  @@index([min_tenth_division_id], map: "min_tenth_division_id")
+  @@index([min_twelfth_division_id], map: "min_twelfth_division_id")
+}
+
+model role_table {
+  role_id    Int          @id @default(autoincrement())
+  role       String?      @unique(map: "uq_role") @db.VarChar(255)
+  user_table user_table[]
+}
+
+model semester_table {
+  semester_id              Int                        @id @default(autoincrement())
+  semester                 String                     @unique(map: "uq_semester") @db.VarChar(255)
+  placement_semester_table placement_semester_table[]
+  student_table            student_table[]
+  training_semester_table  training_semester_table[]
+}
+
+model skill_table {
+  skill_id            Int                   @id @default(autoincrement())
+  skill               String                @unique(map: "skill") @db.VarChar(255)
+  student_skill_table student_skill_table[]
+}
+
+model status_table {
+  status_id                   Int                           @id @default(autoincrement())
+  status                      String                        @unique(map: "uq_status") @db.VarChar(255)
+  organization_table          organization_table[]
+  placement_application_table placement_application_table[]
+  training_application_table  training_application_table[]
+}
+
+model student_skill_table {
+  user_id       Int
+  skill_id      Int
+  student_table student_table @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "student_skill_table_ibfk_1")
+  skill_table   skill_table   @relation(fields: [skill_id], references: [skill_id], onDelete: Cascade, onUpdate: Restrict, map: "student_skill_table_ibfk_2")
+
+  @@id([user_id, skill_id])
+  @@index([skill_id], map: "skill_id")
+}
+
+model student_table {
+  user_id                                                          Int                           @id
+  roll_no                                                          String                        @unique(map: "roll_no") @db.VarChar(255)
+  date_of_birth                                                    DateTime?                     @db.Date
+  semester_id                                                      Int?                          @default(1)
+  department_id                                                    Int?
+  gender_id                                                        Int?
+  cgpa                                                             Decimal?                      @db.Decimal(4, 2)
+  tenth_division_id                                                Int?
+  twelfth_division_id                                              Int?
+  image_url                                                        String?                       @db.VarChar(255)
+  has_backlog                                                      Boolean?                      @default(false)
+  is_graduate                                                      Boolean?                      @default(false)
+  category_id                                                      Int?                          @default(1)
+  resume_url                                                       String?                       @db.VarChar(255)
+  placement_application_table                                      placement_application_table[]
+  student_skill_table                                              student_skill_table[]
+  category_table                                                   category_table?               @relation(fields: [category_id], references: [category_id], onDelete: Restrict, map: "fk_category")
+  user_table                                                       user_table                    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "student_table_ibfk_1")
+  semester_table                                                   semester_table?               @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_2")
+  department_table                                                 department_table?             @relation(fields: [department_id], references: [department_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_3")
+  gender_table                                                     gender_table?                 @relation(fields: [gender_id], references: [gender_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_4")
+  division_table_student_table_tenth_division_idTodivision_table   division_table?               @relation("student_table_tenth_division_idTodivision_table", fields: [tenth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_5")
+  division_table_student_table_twelfth_division_idTodivision_table division_table?               @relation("student_table_twelfth_division_idTodivision_table", fields: [twelfth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_6")
+  training_application_table                                       training_application_table[]
+
+  @@index([department_id], map: "department_id")
+  @@index([category_id], map: "fk_category")
+  @@index([gender_id], map: "gender_id")
+  @@index([semester_id], map: "semester_id")
+  @@index([tenth_division_id], map: "tenth_division_id")
+  @@index([twelfth_division_id], map: "twelfth_division_id")
+}
+
+model training_application_table {
+  training_id        Int
+  student_id         Int
+  status_id          Int?           @default(1)
+  date_of_submission DateTime?      @default(dbgenerated("(curdate())")) @db.Date
+  remarks            String?        @db.Text
+  training_table     training_table @relation(fields: [training_id], references: [training_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_1")
+  student_table      student_table  @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_2")
+  status_table       status_table?  @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_3")
+
+  @@id([training_id, student_id])
+  @@index([status_id], map: "status_id")
+  @@index([student_id], map: "student_id")
+  @@index([training_id], map: "training_id")
+}
+
+model training_department_table {
+  training_id      Int
+  department_id    Int
+  training_table   training_table   @relation(fields: [training_id], references: [training_id], onDelete: Cascade, onUpdate: Restrict, map: "training_department_table_ibfk_1")
+  department_table department_table @relation(fields: [department_id], references: [department_id], onDelete: Cascade, onUpdate: Restrict, map: "training_department_table_ibfk_2")
+
+  @@id([training_id, department_id])
+  @@index([department_id], map: "department_id")
+  @@index([training_id], map: "training_id")
+}
+
+model training_semester_table {
+  training_id    Int
+  semester_id    Int
+  training_table training_table @relation(fields: [training_id], references: [training_id], onDelete: Cascade, onUpdate: Restrict, map: "training_semester_table_ibfk_1")
+  semester_table semester_table @relation(fields: [semester_id], references: [semester_id], onDelete: Cascade, onUpdate: Restrict, map: "training_semester_table_ibfk_2")
+
+  @@id([training_id, semester_id])
+  @@index([semester_id], map: "semester_id")
+  @@index([training_id], map: "training_id")
+}
+
+model training_table {
+  training_id                Int                          @id @default(autoincrement())
+  creator_id                 Int
+  title                      String                       @db.VarChar(255)
+  description                String?                      @db.Text
+  min_cgpa                   Decimal?                     @db.Decimal(4, 2)
+  end_date                   DateTime?                    @db.Date
+  start_date                 DateTime?                    @db.Date
+  image_url                  String?                      @db.VarChar(255)
+  created_on                 DateTime                     @default(now()) @db.Timestamp(0)
+  updated_on                 DateTime                     @default(now()) @db.Timestamp(0)
+  last_date_of_submission    DateTime?                    @db.Date
+  is_active                  Boolean?                     @default(true)
+  training_application_table training_application_table[]
+  training_department_table  training_department_table[]
+  training_semester_table    training_semester_table[]
+  user_table                 user_table                   @relation(fields: [creator_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "training_table_ibfk_1")
+
+  @@index([creator_id], map: "creator_id")
+}
+
+model user_table {
+  user_id            Int                 @id @default(autoincrement())
+  name               String              @db.VarChar(255)
+  role_id            Int
+  email              String              @unique(map: "email") @db.VarChar(255)
+  password           String              @db.VarChar(255)
+  auth_token         String?             @db.VarChar(255)
+  mobile_no          String?             @unique(map: "uq_mobile") @db.VarChar(255)
+  created_on         DateTime            @default(now()) @db.Timestamp(0)
+  updated_on         DateTime            @default(now()) @db.Timestamp(0)
+  last_login         DateTime?           @db.Timestamp(0)
+  department_table   department_table[]
+  note_table         note_table[]
+  organization_table organization_table?
+  placement_table    placement_table[]
+  student_table      student_table?
+  training_table     training_table[]
+  role_table         role_table          @relation(fields: [role_id], references: [role_id], map: "user_table_ibfk_1")
+
+  @@index([role_id], map: "role_id")
+  @@index([mobile_no], map: "mobile_no")
+}
+
+model note_table {
+  note_id     Int        @id @default(autoincrement())
+  creator_id  Int
+  title       String     @db.VarChar(255)
+  description String?    @db.Text
+  note_url    String     @db.VarChar(255)
+  created_on  DateTime   @default(now()) @db.Timestamp(0)
+  updated_on  DateTime   @default(now()) @db.Timestamp(0)
+  user_table  user_table @relation(fields: [creator_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "note_table_ibfk_1")
+
+  @@index([creator_id], map: "creator_id")
+}
+
+model sector_table {
+  sector_id          Int                  @id @default(autoincrement())
+  sector_name        String               @db.VarChar(100)
+  sector_shorthand   String               @unique(map: "sector_shorthand") @db.VarChar(5)
+  organization_table organization_table[]
+}
