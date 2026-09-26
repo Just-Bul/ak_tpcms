@@ -4,7 +4,7 @@ import { Jwt, type UserJwtPayload } from "../../utils/jwt.util.js";
 import Student from "../student/student.model.js";
 import type { IStudent } from "../student/student.type.js";
 import Organization from "../organization/organization.model.js";
-import type { IUser, PasswordChangeInput, SelfPasswordChangeInput, UserIdParamInput, UserLoginInput, UserRegisterInput } from "./user.type.js";
+import type { IUser, PasswordChangeInput, UserIdParamInput, UserLoginInput, UserRegisterInput } from "./user.type.js";
 import User from "./user.model.js";
 import type { IOrganization } from "../organization/organization.type.js";
 import Role from "../role/role.model.js";
@@ -90,22 +90,6 @@ export const passwordChangeService = async (user_id: number, data: PasswordChang
     const userData = await loginUserService(user);
     
     await User.updatePassword(user_id, await PasswordManager.hashPassword(data.new_password));
-    return true;
-}
-
-/** Self-service change password (any authenticated role) — verifies oldPassword against the caller's own stored hash. */
-export const selfPasswordChangeService = async (user_id: number, data: SelfPasswordChangeInput) => {
-    const user = await User.findById(user_id);
-    if (!user) {
-        throw new ApiError(404, "User not found!");
-    }
-
-    const verified = await PasswordManager.verifyPassword(data.oldPassword, user.password);
-    if (!verified) {
-        throw new ApiError(401, "Current password is incorrect");
-    }
-
-    await User.updatePassword(user_id, await PasswordManager.hashPassword(data.newPassword));
     return true;
 }
 

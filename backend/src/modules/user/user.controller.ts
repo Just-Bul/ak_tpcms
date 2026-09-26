@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { registerUserService, loginUserService, getUserService, getOneUserService, passwordChangeService, forgotPasswordService, resetPasswordService, selfPasswordChangeService } from "./user.service.js";
-import type { forgotPasswordInput, PasswordChangeInput, resetPasswordInput, SelfPasswordChangeInput, UserIdParamInput, UserLoginInput, UserRegisterInput } from "../user/user.type.js";
+import { registerUserService, loginUserService, getUserService, getOneUserService, passwordChangeService, forgotPasswordService, resetPasswordService } from "./user.service.js";
+import type { forgotPasswordInput, PasswordChangeInput, resetPasswordInput, UserIdParamInput, UserLoginInput, UserRegisterInput } from "../user/user.type.js";
 import Data from "../../utils/data.util.js";
 import User from "./user.model.js";
 import prisma from "../../config/db.prisma.js";
@@ -91,23 +91,6 @@ export const passwordChangeController = async (
         next(error);
     }
     
-}
-export const selfPasswordChangeController = async (
-    req: Request<{}, {}, SelfPasswordChangeInput>,
-    res: Response,
-    next: NextFunction
-) => {
-    try {
-        const user_id = req.user!.auth_user_id;
-        await selfPasswordChangeService(user_id, req.body);
-        res.status(200).json({
-            success: true,
-            message: "Password updated successfully",
-        });
-    } catch(error) {
-        next(error);
-    }
-
 }
 export const forgotPasswordController = async (
     req: Request<{}, {}, forgotPasswordInput>,
