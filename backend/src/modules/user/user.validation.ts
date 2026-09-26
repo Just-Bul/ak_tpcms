@@ -31,17 +31,6 @@ export const passwordChangeSchema = z.object({
     })
 })
 
-export const selfPasswordChangeSchema = z.object({
-    body: z.object({
-        oldPassword: z.string("Old password must be a string"),
-        newPassword: z.string("New password must be a string").min(6, "New password should be minimum 6 characters"),
-        confirmPassword: z.string("Confirm password must be a string"),
-    }).strict().refine((data) => data.newPassword === data.confirmPassword, {
-        message: "New password and confirm password do not match",
-        path: ["confirmPassword"],
-    })
-})
-
 export const forgotPasswordSchema = z.object({
     body: z.object({
         email: z.email("Email must be provided in body"),
