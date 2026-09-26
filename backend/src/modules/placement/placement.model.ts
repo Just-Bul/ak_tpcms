@@ -11,6 +11,26 @@ class Placement {
         return placement;
     }
 
+    static async findAll() {
+        const placementList = await prisma.placement_table.findMany({
+            include: {
+                placement_department_table: true,
+                placement_category_table: true,
+                placement_semester_table: true,
+                user_table: {
+                    include: {
+                        organization_table: {
+                            include: {
+                                sector_table: true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        return placementList;
+    }
+
     static async create(placementData: PlacementCreateData) {
         const { only_category, only_semester, only_department, ...dbData} = placementData;
 
