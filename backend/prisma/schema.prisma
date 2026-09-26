@@ -19,6 +19,7 @@ model department_table {
   is_active                  Boolean?                     @default(true)
   coordinator_id             Int?
   user_table                 user_table?                  @relation(fields: [coordinator_id], references: [user_id], onDelete: Restrict, map: "fk_department_coordinator")
+  notice_table               notice_table[]
   placement_department_table placement_department_table[]
   student_table              student_table[]
   training_department_table  training_department_table[]
@@ -57,14 +58,15 @@ model organization_table {
 }
 
 model placement_application_table {
-  placement_id       Int
-  student_id         Int
-  status_id          Int?            @default(1)
-  date_of_submission DateTime?       @default(dbgenerated("(curdate())")) @db.Date
-  remarks            String?         @db.Text
-  placement_table    placement_table @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_1")
-  student_table      student_table   @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_2")
-  status_table       status_table?   @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_3")
+  placement_id             Int
+  student_id               Int
+  status_id                Int?                       @default(1)
+  date_of_submission       DateTime?                  @default(dbgenerated("(curdate())")) @db.Date
+  remarks                  String?                    @db.Text
+  interview_schedule_table interview_schedule_table[]
+  placement_table          placement_table            @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_1")
+  student_table            student_table              @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_2")
+  status_table             status_table?              @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_3")
 
   @@id([placement_id, student_id])
   @@index([placement_id], map: "placement_id")
@@ -190,6 +192,7 @@ model student_table {
   category_id                                                      Int?                          @default(1)
   resume_url                                                       String?                       @db.VarChar(255)
   placement_application_table                                      placement_application_table[]
+  student_link_table                                               student_link_table[]
   student_skill_table                                              student_skill_table[]
   category_table                                                   category_table?               @relation(fields: [category_id], references: [category_id], onDelete: Restrict, map: "fk_category")
   user_table                                                       user_table                    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "student_table_ibfk_1")
@@ -268,23 +271,25 @@ model training_table {
 }
 
 model user_table {
-  user_id            Int                 @id @default(autoincrement())
-  name               String              @db.VarChar(255)
-  role_id            Int
-  email              String              @unique(map: "email") @db.VarChar(255)
-  password           String              @db.VarChar(255)
-  auth_token         String?             @db.VarChar(255)
-  mobile_no          String?             @unique(map: "uq_mobile") @db.VarChar(255)
-  created_on         DateTime            @default(now()) @db.Timestamp(0)
-  updated_on         DateTime            @default(now()) @db.Timestamp(0)
-  last_login         DateTime?           @db.Timestamp(0)
-  department_table   department_table[]
-  note_table         note_table[]
-  organization_table organization_table?
-  placement_table    placement_table[]
-  student_table      student_table?
-  training_table     training_table[]
-  role_table         role_table          @relation(fields: [role_id], references: [role_id], map: "user_table_ibfk_1")
+  user_id                  Int                        @id @default(autoincrement())
+  name                     String                     @db.VarChar(255)
+  role_id                  Int
+  email                    String                     @unique(map: "email") @db.VarChar(255)
+  password                 String                     @db.VarChar(255)
+  auth_token               String?                    @db.VarChar(255)
+  mobile_no                String?                    @unique(map: "uq_mobile") @db.VarChar(255)
+  created_on               DateTime                   @default(now()) @db.Timestamp(0)
+  updated_on               DateTime                   @default(now()) @db.Timestamp(0)
+  last_login               DateTime?                  @db.Timestamp(0)
+  department_table         department_table[]
+  interview_schedule_table interview_schedule_table[]
+  note_table               note_table[]
+  notice_table             notice_table[]
+  organization_table       organization_table?
+  placement_table          placement_table[]
+  student_table            student_table?
+  training_table           training_table[]
+  role_table               role_table                 @relation(fields: [role_id], references: [role_id], map: "user_table_ibfk_1")
 
   @@index([role_id], map: "role_id")
   @@index([mobile_no], map: "mobile_no")
@@ -308,4 +313,64 @@ model sector_table {
   sector_name        String               @db.VarChar(100)
   sector_shorthand   String               @unique(map: "sector_shorthand") @db.VarChar(5)
   organization_table organization_table[]
+}
+
+model interview_schedule_table {
+  interview_id                Int                           @id @default(autoincrement())
+  placement_id                Int
+  student_id                  Int
+  scheduled_by                Int
+  interview_date              DateTime                      @db.Date
+  interview_time              DateTime                      @db.Time(0)
+  mode                        interview_schedule_table_mode @default(Online)
+  meeting_link                String?                       @db.VarChar(255)
+  offline_location            String?                       @db.VarChar(255)
+  notes                       String?                       @db.Text
+  created_on                  DateTime                      @default(now()) @db.Timestamp(0)
+  updated_on                  DateTime                      @default(now()) @db.Timestamp(0)
+  placement_application_table placement_application_table   @relation(fields: [placement_id, student_id], references: [placement_id, student_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_interview_application")
+  user_table                  user_table                    @relation(fields: [scheduled_by], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_interview_scheduler")
+
+  @@index([scheduled_by], map: "fk_interview_scheduler")
+  @@index([placement_id, student_id], map: "idx_interview_application")
+}
+
+model link_type_table {
+  link_type_id       Int                  @id @default(autoincrement())
+  link_type          String               @unique(map: "uq_link_type") @db.VarChar(100)
+  student_link_table student_link_table[]
+}
+
+model notice_table {
+  notice_id        Int               @id @default(autoincrement())
+  creator_id       Int
+  title            String            @db.VarChar(255)
+  message          String            @db.Text
+  department_id    Int?
+  is_active        Boolean           @default(true)
+  created_on       DateTime          @default(now()) @db.Timestamp(0)
+  updated_on       DateTime          @default(now()) @db.Timestamp(0)
+  user_table       user_table        @relation(fields: [creator_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_notice_creator")
+  department_table department_table? @relation(fields: [department_id], references: [department_id], onUpdate: Restrict, map: "fk_notice_department")
+
+  @@index([creator_id], map: "fk_notice_creator")
+  @@index([department_id], map: "fk_notice_department")
+}
+
+model student_link_table {
+  link_id         Int             @id @default(autoincrement())
+  student_id      Int
+  link_type_id    Int
+  url             String          @db.VarChar(255)
+  created_on      DateTime        @default(now()) @db.Timestamp(0)
+  student_table   student_table   @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_student_link_student")
+  link_type_table link_type_table @relation(fields: [link_type_id], references: [link_type_id], onUpdate: Restrict, map: "fk_student_link_type")
+
+  @@index([student_id], map: "fk_student_link_student")
+  @@index([link_type_id], map: "fk_student_link_type")
+}
+
+enum interview_schedule_table_mode {
+  Online
+  Offline
 }
