@@ -43,7 +43,7 @@ export const createTrainingService = async (input: TrainingCreateInput, actor: U
 export const getTrainingService = async (actor: UserJwtPayload): Promise<ITraining[]> => {
     switch (actor.auth_role_id) {
         case Role.Student:
-            const eligibleTraining = await Training.findEligibleById(actor.auth_user_id);
+            const eligibleTraining = await Training.findAll();
             if (!eligibleTraining) {
                 throw new ApiError(500, "Could not find eligible trainings");
             }

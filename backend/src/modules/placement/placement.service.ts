@@ -56,7 +56,7 @@ export const createPlacementService = async (input: PlacementCreateInput, actor:
 export const getPlacementService = async (actor: UserJwtPayload): Promise<IPlacement[]> => {
     switch (actor.auth_role_id) {
         case Role.Student:
-            const eligiblePlacement = await Placement.findEligibleById(actor.auth_user_id);
+            const eligiblePlacement = await Placement.findAll();
             if (!eligiblePlacement) {
                 throw new ApiError(500, "Could not find eligible placements");
             }
