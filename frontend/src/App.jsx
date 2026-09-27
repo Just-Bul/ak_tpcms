@@ -14,6 +14,7 @@ import CompanyProfileSetup from './pages/company/CompanyProfileSetup';
 import StudentProfileSetup from './pages/student/StudentProfileSetup';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AppRoute } from './routes/AppRoute';
+import ResumePage from './pages/shared/ResumePage';
 
 export default function App() {
   return (
@@ -76,8 +77,17 @@ export default function App() {
               </AppRoute>
             }
           />
+          <Route
+            path="/students/resume"
+            element={
+              <AppRoute allowedRoles={['Student']}>
+                <ResumePage />
+              </AppRoute>
+            }
+          />
         </Route>
       </Route>
+      
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
