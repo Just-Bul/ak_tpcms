@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState} from 'react'
 import { Download, Mail, Phone, Building2, GraduationCap, Award, Calendar, VenusAndMars } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { Loading } from '@/components/common/Loading'
