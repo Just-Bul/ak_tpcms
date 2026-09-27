@@ -15,6 +15,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 
+import DashboardShell from "../../../components/DashboardShell";
 import api from "../../../services/api";
 
 export default function Dashboard() {
@@ -28,10 +29,6 @@ export default function Dashboard() {
       .then((res) => setMetrics(res?.data || null))
       .catch(() => setMetrics(null));
   }, []);
-
-  /* ==========================================================
-     Dashboard Statistics
-  ========================================================== */
 
   const statsData = [
     {
@@ -73,7 +70,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <>
+    <DashboardShell
+      title="Coordinator Dashboard"
+      subtitle="Manage department training and placement activities."
+    >
       {/* ==========================================================
           STATISTICS CARDS
       ========================================================== */}
@@ -209,6 +209,6 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
-    </>
+    </DashboardShell>
   );
 }
