@@ -2,6 +2,28 @@ import type { Prisma } from "@prisma/client";
 import prisma from "../../config/db.prisma.js";
 import type { IPlacementApplication, PlacementApplicationCreateData } from "./placement_application.type.js";
 
+const studentReviewInclude = {
+    include: {
+        user_table: {
+            select: {
+                user_id: true,
+                name: true,
+                email: true,
+                role_id: true,
+                mobile_no: true,
+                created_on: true,
+                updated_on: true,
+                last_login: true
+            }
+        },
+        department_table: true,
+        semester_table: true,
+        category_table: true,
+        student_document_table: true,
+        alumni_table: true
+    }
+};
+
 class PlacementApplication {
     static async findById(student_id: number, placement_id: number) {
         const placementApplication = await prisma.placement_application_table.findUnique({
@@ -10,6 +32,11 @@ class PlacementApplication {
                     placement_id,
                     student_id
                 }
+            },
+            include: {
+                placement_table: true,
+                student_table: studentReviewInclude,
+                status_table: true
             }
         });
         return placementApplication;
@@ -33,6 +60,7 @@ class PlacementApplication {
                 student_id
             },
             include: {
+                status_table: true,
                 placement_table: {
                     include: {
                         user_table: {
@@ -45,7 +73,7 @@ class PlacementApplication {
             }
         });
 
-        return appliedPlacement
+        return appliedPlacement;
     }
 
     static async findByCreatorId(creator_id: number) {
@@ -56,28 +84,13 @@ class PlacementApplication {
                 }
             },
             include: {
+                status_table: true,
                 placement_table: true,
-                student_table: {
-                    include: {
-                        user_table: {
-                            select: {
-                                user_id: true,
-                                name: true,
-                                email: true,
-                                role_id: true,
-                                mobile_no: true,
-                                created_on: true,
-                                updated_on: true,
-                                last_login: true
-                            }
-                        },
-                        department_table: true
-                    }
-                }
+                student_table: studentReviewInclude
             }
         });
 
-        return appliedPlacement
+        return appliedPlacement;
     }
 
     static async findByDepartmentId(department_id: number) {
@@ -91,31 +104,16 @@ class PlacementApplication {
                 }
             },
             include: {
+                status_table: true,
                 placement_table: true,
-                student_table: {
-                    include: {
-                        user_table: {
-                            select: {
-                                user_id: true,
-                                name: true,
-                                email: true,
-                                role_id: true,
-                                mobile_no: true,
-                                created_on: true,
-                                updated_on: true,
-                                last_login: true
-                            }
-                        },
-                        department_table: true
-                    }
-                }
+                student_table: studentReviewInclude
             }
         });
 
-        return appliedPlacement
+        return appliedPlacement;
     }
 
-    static async approve(student_id: number, placement_id: number) {
+    static async approve(student_id: number, placement_id: number, verified_by?: number) {
         const approvedPlacement = await prisma.placement_application_table.update({
             where: {
                 placement_id_student_id: {
@@ -124,14 +122,16 @@ class PlacementApplication {
                 }
             },
             data: {
-                status_id: 2
+                status_id: 2,
+                verified_by: verified_by ?? null,
+                verified_at: new Date()
             }
         });
 
         return approvedPlacement;
     }
 
-    static async reject(student_id: number, placement_id: number) {
+    static async reject(student_id: number, placement_id: number, verified_by?: number) {
         const rejectedPlacement = await prisma.placement_application_table.update({
             where: {
                 placement_id_student_id: {
@@ -140,7 +140,9 @@ class PlacementApplication {
                 }
             },
             data: {
-                status_id: 3
+                status_id: 3,
+                verified_by: verified_by ?? null,
+                verified_at: new Date()
             }
         });
 
@@ -165,8 +167,7 @@ class PlacementApplication {
         if (filter.creator_id !== undefined) {
             whereClause.placement_table = {
                 creator_id: filter.creator_id,
-                
-            }
+            };
         }
 
         const applicationCount = await prisma.placement_application_table.count({
@@ -175,9 +176,6 @@ class PlacementApplication {
 
         return applicationCount;
     }
-
-
-
 
     static async findByFilter(filter: {
         creator_id?: number,
@@ -197,12 +195,16 @@ class PlacementApplication {
         if (filter.creator_id !== undefined) {
             whereClause.placement_table = {
                 creator_id: filter.creator_id,
-                
-            }
+            };
         }
 
         const applicationCount = await prisma.placement_application_table.findMany({
-            where: whereClause
+            where: whereClause,
+            include: {
+                status_table: true,
+                placement_table: true,
+                student_table: studentReviewInclude
+            }
         });
 
         return applicationCount;
