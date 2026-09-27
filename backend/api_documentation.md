@@ -348,7 +348,7 @@ The database utilizes specific static integer IDs for roles:
 #### 3. Update Student Profile as Admin
 * **Path**: `PUT /students/:user_id`
 * **Auth**: `SuperAdmin` (Role 1)
-* **Body Requirements (Optional properties)**: Same as Student self update, but also allows `roll_no`, `gender_id`, `department_id`, `semester_id`, `name`, `age`, and `is_graduate` (boolean).
+* **Body Requirements (Optional properties)**: Same as Student self update, but also allows `roll_no`, `gender_id`, `department_id`, `semester_id`, `name`, `age`, `is_graduate` (boolean), and `graduation` (boolean).
 
 #### 4. Retrieve Own Student Profile
 * **Path**: `GET /students/me`
@@ -370,7 +370,9 @@ The database utilizes specific static integer IDs for roles:
       "semester": "Sem 6",
       "skill": ["TypeScript", "React", "Python"],
       "tenth_division": "First",
-      "twelfth_division": "First"
+      "twelfth_division": "First",
+      "graduation": false,
+      "is_graduate": false
     }
   }
   ```
@@ -394,15 +396,26 @@ The database utilizes specific static integer IDs for roles:
       "semester": "Sem 6",
       "skill": ["TypeScript", "React"],
       "tenth_division": "First",
-      "twelfth_division": "First"
+      "twelfth_division": "First",
+      "graduation": false,
+      "is_graduate": false
     }
   }
   ```
 * **Error Response (Status: 403 Forbidden)**: If a Student requests another student's profile, or a Coordinator requests a student profile from another department.
 
-#### 6. List All Students
+#### 6. List All Students (with Filtering)
 * **Path**: `GET /students/`
-* **Auth**: `SuperAdmin` (Role 1)
+* **Auth**: `SuperAdmin` (Role 1), `Coordinator` (Role 3)
+* **Query Parameters (All Optional)**:
+  * `status`: `"regular"` (current enrolled) | `"alumni"` (graduated) | `"all"`
+  * `grade` or `min_cgpa`: Minimum CGPA (e.g. `7.5`)
+  * `max_cgpa`: Maximum CGPA (e.g. `10.0`)
+  * `semester_id`: Numeric semester ID (e.g. `6`)
+  * `department_id` or `branch_id`: Numeric department ID (e.g. `1`)
+  * `graduation_year` or `passing_year`: Graduation/passing year (e.g. `2024`)
+  * `has_backlog`: `true` | `false`
+  * `search`: Text query searching across Student name, roll number, or email.
 * **Success Response (Status: 200 OK)**:
   ```json
   {
@@ -412,10 +425,111 @@ The database utilizes specific static integer IDs for roles:
       {
         "user_id": 6,
         "roll_no": "20BCE0012",
-        "name": "Jane Doe",
-        "user_table": { "email": "student@domain.com", "mobile_no": "1234567890" }
+        "cgpa": "8.50",
+        "has_backlog": false,
+        "graduation": false,
+        "is_graduate": false,
+        "status": "Regular",
+        "graduation_year": 2025,
+        "grade_card_url": "/public/document_media/172044-gradecard.pdf",
+        "department_table": { "department_id": 1, "department_name": "Computer Science" },
+        "semester_table": { "semester_id": 6, "semester": "6th Semester" },
+        "user_table": { "user_id": 6, "name": "Jane Doe", "email": "student@domain.com", "mobile_no": "1234567890" },
+        "alumni_table": null,
+        "documents": [
+          {
+            "document_id": 1,
+            "document_type": "grade_card",
+            "document_name": "Sem 5 Grade Card",
+            "document_url": "/public/document_media/172044-gradecard.pdf",
+            "verified": true
+          }
+        ]
       }
     ]
+  }
+  ```
+
+#### 7. Upload Student Document (Repository)
+* **Path**: `POST /students/documents`
+* **Auth**: `Student` (Role 2), `SuperAdmin` (Role 1), `Coordinator` (Role 3)
+* **Body Requirements**:
+  ```json
+  {
+    "user_id": 6, // Optional, defaults to logged-in user for students
+    "document_type": "grade_card", // "grade_card" | "marksheet" | "certificate" | "id_proof"
+    "document_name": "Semester 5 Grade Card",
+    "document_url": "/public/document_media/172044-gradecard.pdf"
+  }
+  ```
+* **Success Response (Status: 201 Created)**:
+  ```json
+  {
+    "success": true,
+    "message": "Document uploaded and saved successfully",
+    "data": {
+      "document_id": 1,
+      "user_id": 6,
+      "document_type": "grade_card",
+      "document_name": "Semester 5 Grade Card",
+      "document_url": "/public/document_media/172044-gradecard.pdf",
+      "verified": false,
+      "created_on": "2026-09-27T12:00:00.000Z"
+    }
+  }
+  ```
+
+#### 8. Retrieve Student Documents
+* **Path**: `GET /students/documents/me` (own documents) or `GET /students/:user_id/documents` (by ID)
+* **Auth**: `Student` (self), `SuperAdmin` (Role 1), `Coordinator` (Role 3)
+* **Success Response (Status: 200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Documents fetched successfully",
+    "data": [
+      {
+        "document_id": 1,
+        "user_id": 6,
+        "document_type": "grade_card",
+        "document_name": "Semester 5 Grade Card",
+        "document_url": "/public/document_media/172044-gradecard.pdf",
+        "verified": false,
+        "created_on": "2026-09-27T12:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+#### 9. Verify Student Document (T&P Cell Review)
+* **Path**: `PATCH /students/documents/:document_id/verify`
+* **Auth**: `SuperAdmin` (Role 1), `Coordinator` (Role 3)
+* **Body Requirements**:
+  ```json
+  {
+    "verified": true
+  }
+  ```
+* **Success Response (Status: 200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Document verified successfully",
+    "data": {
+      "document_id": 1,
+      "verified": true
+    }
+  }
+  ```
+
+#### 10. Delete Student Document
+* **Path**: `DELETE /students/documents/:document_id`
+* **Auth**: `Student` (owner), `SuperAdmin` (Role 1)
+* **Success Response (Status: 200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Document deleted successfully"
   }
   ```
 
@@ -1160,6 +1274,51 @@ All metadata lists return simple reference objects: `{ <id_name>: number, <value
 
 ---
 
-## 6. Critical Integration & Backend Bug Warnings
+### Notification Namespace (`/notifications`)
 
-All critical bugs have been resolved.
+Broadcasts notices and drive alerts to all students while dynamically computing eligibility status and reasons.
+
+#### 1. Retrieve Drive & Training Notifications
+* **Path**: `GET /notifications`
+* **Auth**: `Student` (Role 2), `Coordinator` (Role 3), `SuperAdmin` (Role 1)
+* **Query Parameters (Optional)**:
+  * `section`: `"all"` | `"placement"` | `"training"` (Default: `"all"`)
+  * `filter`: `"all"` | `"eligible"` | `"ineligible"` | `"applied"` (Default: `"all"`)
+  * `student_id`: Numeric ID (Used by SuperAdmin/Coordinator to check for a student)
+* **Success Response (Status: 200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Successfully fetched notifications",
+    "data": [
+      {
+        "id": 1,
+        "notification_type": "placement",
+        "title": "Software Engineer 2026",
+        "description": "Full-time campus hiring drive",
+        "company_name": "Acme Corp",
+        "image_url": "/public/banner_media/drive.png",
+        "min_cgpa": 7.5,
+        "salary_range": "800000 - 1200000",
+        "last_date_of_submission": "2026-10-15T00:00:00.000Z",
+        "created_on": "2026-09-27T10:00:00.000Z",
+        "is_eligible": true,
+        "eligibility_reason": "Eligible to apply",
+        "has_applied": false,
+        "application_status": null,
+        "verified_by": null,
+        "verified_at": null,
+        "can_apply": true
+      }
+    ]
+  }
+  ```
+
+---
+
+## 6. Application Verification & Review Rules
+
+* **T&P Cell Authority**: Applications for placements and trainings can **ONLY** be approved or rejected by the T&P Cell (`SuperAdmin` [1] or `Coordinator` [3]).
+* **Organization Limitation**: Organizations (`Role.Organization` [4]) are strictly blocked with `403 Forbidden` if they attempt to approve or reject applications.
+* **Document Review**: Coordinators and Admins can review all attached student documents (`student_document_table` and `grade_card_url`) directly within the application endpoints (`GET /placement-applications`, `GET /training-applications`) and student profile endpoints before marking applications as approved.
+* **Verification Audit Trail**: When an application is approved, `verified_by` (the coordinator/admin ID) and `verified_at` (timestamp) are recorded in the database.

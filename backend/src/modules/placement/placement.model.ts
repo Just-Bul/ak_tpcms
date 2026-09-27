@@ -5,8 +5,22 @@ import Student from "../student/student.model.js";
 
 class Placement {
     static async findById(placement_id: number) {
-        const placement = prisma.placement_table.findUnique({
-            where: {placement_id}
+        const placement = await prisma.placement_table.findUnique({
+            where: { placement_id },
+            include: {
+                placement_department_table: true,
+                placement_category_table: true,
+                placement_semester_table: true,
+                user_table: {
+                    include: {
+                        organization_table: {
+                            include: {
+                                sector_table: true
+                            }
+                        }
+                    }
+                }
+            }
         });
         return placement;
     }
