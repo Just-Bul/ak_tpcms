@@ -1,48 +1,79 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
-/**
- * Generic list-fetching hook, replacing the copy-pasted
- * useState+useEffect+try/catch/finally pattern used across list pages.
- * Fetches once on mount (and whenever `enabled` flips true); call `refetch()` to re-run.
- *
- * @param {() => Promise<any[]>} fetcher
- * @param {{ enabled?: boolean }} options
- */
 export function useFetchList(fetcher, { enabled = true } = {}) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState(null)
   const [version, setVersion] = useState(0)
-  const fetcherRef = useRef(fetcher)
+
+  const refetch = useCallback(() => {
+    setVersion((v) => v + 1)
+  }, [])
 
   useEffect(() => {
-    fetcherRef.current = fetcher
-  })
+    if (!enabled) {
+      setLoading(false)
+      return
+    }
 
-  const refetch = useCallback(() => setVersion((v) => v + 1), [])
-
-  useEffect(() => {
-    if (!enabled) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    fetcherRef
-      .current()
-      .then((result) => {
-        if (!cancelled) setData(Array.isArray(result) ? result : [])
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const result = await fetcher()
+
+        console.log('useFetchList RESULT:', result)
+        console.log(
+          'useFetchList RESULT IS ARRAY:',
+          Array.isArray(result)
+        )
+        console.log(
+          'useFetchList RESULT LENGTH:',
+          Array.isArray(result)
+            ? result.length
+            : 'NOT ARRAY'
+        )
+
+        if (!cancelled) {
+          setData(
+            Array.isArray(result)
+              ? result
+              : []
+          )
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : String(err)
+          )
+          setData([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    load()
+
     return () => {
       cancelled = true
     }
-  }, [enabled, version])
+  }, [enabled, version, fetcher])
 
-  return { data, setData, loading, error, refetch }
+  return {
+    data,
+    setData,
+    loading,
+    error,
+    refetch,
+  }
 }
 
 export default useFetchList
