@@ -59,16 +59,6 @@ export const viewPlacementApplicationService = async (user: UserJwtPayload): Pro
 }  
 
 export const approvePlacementApplicationService = async (student_id: number, placement_id: number, user: UserJwtPayload): Promise<IPlacementApplication> => {
-    // Organizations cannot approve or reject student applications
-    if (user.auth_role_id === Role.Organization) {
-        throw new ApiError(403, "Organizations cannot approve or reject student applications. Applications must be reviewed, verified, and approved by the T&P Cell (Coordinator or SuperAdmin).");
-    }
-
-    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
-    if (!isAdminOrCoordinator) {
-        throw new ApiError(403, "Only T&P Cell (Coordinator or SuperAdmin) has permission to approve placement applications");
-    }
-
     const student = await Student.findById(student_id);
     if (!student) {
         throw new ApiError(404, "Student does not exist");
@@ -84,7 +74,14 @@ export const approvePlacementApplicationService = async (student_id: number, pla
         throw new ApiError(404, "Placement with this ID does not exist");
     }
 
-    const approvedPlacement = await PlacementApplication.approve(student_id, placement_id, user.auth_user_id);
+    const isCreator = placement.creator_id === user.auth_user_id;
+    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
+
+    if (!isCreator && !isAdminOrCoordinator) {
+        throw new ApiError(403, "You do not have permission to approve applications for this placement");
+    }
+
+    const approvedPlacement = await PlacementApplication.approve(student_id, placement_id);
     if (!approvedPlacement) {
         throw new ApiError(500, `Could not approve Placement Application`);
     }
@@ -93,16 +90,6 @@ export const approvePlacementApplicationService = async (student_id: number, pla
 }  
 
 export const rejectPlacementApplicationService = async (student_id: number, placement_id: number, user: UserJwtPayload): Promise<IPlacementApplication> => {
-    // Organizations cannot approve or reject student applications
-    if (user.auth_role_id === Role.Organization) {
-        throw new ApiError(403, "Organizations cannot approve or reject student applications. Applications must be reviewed, verified, and approved by the T&P Cell (Coordinator or SuperAdmin).");
-    }
-
-    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
-    if (!isAdminOrCoordinator) {
-        throw new ApiError(403, "Only T&P Cell (Coordinator or SuperAdmin) has permission to reject placement applications");
-    }
-
     const student = await Student.findById(student_id);
     if (!student) {
         throw new ApiError(404, "Student does not exist");
@@ -118,7 +105,14 @@ export const rejectPlacementApplicationService = async (student_id: number, plac
         throw new ApiError(404, "Placement with this ID does not exist");
     }
 
-    const rejectedPlacement = await PlacementApplication.reject(student_id, placement_id, user.auth_user_id);
+    const isCreator = placement.creator_id === user.auth_user_id;
+    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
+
+    if (!isCreator && !isAdminOrCoordinator) {
+        throw new ApiError(403, "You do not have permission to reject applications for this placement");
+    }
+
+    const rejectedPlacement = await PlacementApplication.reject(student_id, placement_id);
     if (!rejectedPlacement) {
         throw new ApiError(500, `Could not reject Placement Application`);
     }

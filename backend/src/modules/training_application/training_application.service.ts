@@ -62,16 +62,6 @@ export const updateTrainingApplicationStatusService = async (data: {
     remarks?: string | undefined,
     status: "approve" | "reject"
 }, user: UserJwtPayload) => {
-    // Organizations cannot approve or reject student applications
-    if (user.auth_role_id === Role.Organization) {
-        throw new ApiError(403, `Organizations cannot ${data.status} student applications. Applications must be reviewed, verified, and approved by the T&P Cell (Coordinator or SuperAdmin).`);
-    }
-
-    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
-    if (!isAdminOrCoordinator) {
-        throw new ApiError(403, `Only T&P Cell (Coordinator or SuperAdmin) has permission to ${data.status} applications for this training`);
-    }
-
     const student = await Student.findById(data.student_id);
     if (!student) {
         throw new ApiError(404, "Student does not exist");
@@ -87,10 +77,14 @@ export const updateTrainingApplicationStatusService = async (data: {
         throw new ApiError(404, "Training with this ID does not exist");
     }
 
-    const approvedTraining = await TrainingApplication.updateState({
-        ...data,
-        verified_by: user.auth_user_id
-    });
+    const isCreator = training.creator_id === user.auth_user_id;
+    const isAdminOrCoordinator = user.auth_role_id === Role.SuperAdmin || user.auth_role_id === Role.Coordinator;
+
+    if (!isCreator && !isAdminOrCoordinator) {
+        throw new ApiError(403, `You do not have permission to ${data.status} applications for this training`);
+    }
+
+    const approvedTraining = await TrainingApplication.updateState(data);
     if (!approvedTraining) {
         throw new ApiError(500, `Could not ${data.status} Training Application`);
     }

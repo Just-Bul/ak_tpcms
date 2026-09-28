@@ -62,8 +62,6 @@ model placement_application_table {
   status_id          Int?            @default(1)
   date_of_submission DateTime?       @default(dbgenerated("(curdate())")) @db.Date
   remarks            String?         @db.Text
-  verified_by        Int?
-  verified_at        DateTime?       @db.Timestamp(0)
   placement_table    placement_table @relation(fields: [placement_id], references: [placement_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_1")
   student_table      student_table   @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_2")
   status_table       status_table?   @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "placement_application_table_ibfk_3")
@@ -189,13 +187,8 @@ model student_table {
   image_url                                                        String?                       @db.VarChar(255)
   has_backlog                                                      Boolean?                      @default(false)
   is_graduate                                                      Boolean?                      @default(false)
-  graduation                                                       Boolean?                      @default(false)
-  graduation_year                                                  Int?
-  grade_card_url                                                   String?                       @db.VarChar(255)
   category_id                                                      Int?                          @default(1)
   resume_url                                                       String?                       @db.VarChar(255)
-  alumni_table                                                     alumni_table?
-  student_document_table                                           student_document_table[]
   placement_application_table                                      placement_application_table[]
   student_skill_table                                              student_skill_table[]
   category_table                                                   category_table?               @relation(fields: [category_id], references: [category_id], onDelete: Restrict, map: "fk_category")
@@ -221,8 +214,6 @@ model training_application_table {
   status_id          Int?           @default(1)
   date_of_submission DateTime?      @default(dbgenerated("(curdate())")) @db.Date
   remarks            String?        @db.Text
-  verified_by        Int?
-  verified_at        DateTime?      @db.Timestamp(0)
   training_table     training_table @relation(fields: [training_id], references: [training_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_1")
   student_table      student_table  @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_2")
   status_table       status_table?  @relation(fields: [status_id], references: [status_id], onDelete: Cascade, onUpdate: Restrict, map: "training_application_table_ibfk_3")
@@ -318,32 +309,3 @@ model sector_table {
   sector_shorthand   String               @unique(map: "sector_shorthand") @db.VarChar(5)
   organization_table organization_table[]
 }
-
-model alumni_table {
-  alumni_id       Int           @id @default(autoincrement())
-  user_id         Int           @unique(map: "uq_alumni_user")
-  passing_year    Int
-  current_company String?       @db.VarChar(255)
-  designation     String?       @db.VarChar(255)
-  created_on      DateTime      @default(now()) @db.Timestamp(0)
-  updated_on      DateTime      @default(now()) @db.Timestamp(0)
-  student_table   student_table @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade, map: "fk_alumni_student")
-
-  @@index([passing_year], map: "idx_alumni_passing_year")
-}
-
-model student_document_table {
-  document_id   Int           @id @default(autoincrement())
-  user_id       Int
-  document_type String        @db.VarChar(100)
-  document_name String        @db.VarChar(255)
-  document_url  String        @db.VarChar(255)
-  verified      Boolean?      @default(false)
-  created_on    DateTime      @default(now()) @db.Timestamp(0)
-  updated_on    DateTime      @default(now()) @db.Timestamp(0)
-  student_table student_table @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade, map: "fk_student_doc_user")
-
-  @@index([user_id], map: "idx_student_doc_user")
-  @@index([document_type], map: "idx_student_doc_type")
-}
-
