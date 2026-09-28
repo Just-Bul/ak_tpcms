@@ -199,15 +199,13 @@ model student_table {
   division_table_student_table_tenth_division_idTodivision_table   division_table?               @relation("student_table_tenth_division_idTodivision_table", fields: [tenth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_5")
   division_table_student_table_twelfth_division_idTodivision_table division_table?               @relation("student_table_twelfth_division_idTodivision_table", fields: [twelfth_division_id], references: [division_id], onDelete: Restrict, onUpdate: Restrict, map: "student_table_ibfk_6")
   training_application_table                                       training_application_table[]
-  student_status String @default("ACTIVE") @db.VarChar(20)
+
   @@index([department_id], map: "department_id")
   @@index([category_id], map: "fk_category")
   @@index([gender_id], map: "gender_id")
   @@index([semester_id], map: "semester_id")
   @@index([tenth_division_id], map: "tenth_division_id")
   @@index([twelfth_division_id], map: "twelfth_division_id")
-  @@index([student_status], map: "idx_student_status")
-  @@index([graduation_year], map: "idx_graduation_year")
 }
 
 model training_application_table {
