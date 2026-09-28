@@ -1,7 +1,7 @@
 import multer from 'multer';
 
 const profileMediaStorage = multer.diskStorage({
-    destination: (req, file, callback) => {
+    destination:    (req, file, callback) => {
         callback(null, "public/profile_media/");
     },
     filename: (req, file, callback) => {
@@ -18,7 +18,7 @@ const resumeMediaStorage = multer.diskStorage({
         callback(null, `${Date.now()}-${file.originalname}`);
     }
 });
-export const resumeMediaUpload = multer({ storage: resumeMediaStorage });
+export const resumeMediaUpload= multer({ storage: resumeMediaStorage });
 
 const bannerMediaStorage = multer.diskStorage({
     destination: (req, file, callback) => {
@@ -39,13 +39,3 @@ const notesMediaStorage = multer.diskStorage({
     }
 });
 export const notesMediaUpload = multer({ storage: notesMediaStorage });
-
-const documentMediaStorage = multer.diskStorage({
-    destination: (req, file, callback) => {
-        callback(null, "public/document_media/");
-    },
-    filename: (req, file, callback) => {
-        callback(null, `${Date.now()}-${file.originalname}`);
-    }
-});
-export const documentMediaUpload = multer({ storage: documentMediaStorage });

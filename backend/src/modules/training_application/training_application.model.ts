@@ -1,28 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import prisma from "../../config/db.prisma.js";
 
-const studentReviewInclude = {
-    include: {
-        user_table: {
-            select: {
-                user_id: true,
-                name: true,
-                email: true,
-                role_id: true,
-                mobile_no: true,
-                created_on: true,
-                updated_on: true,
-                last_login: true
-            }
-        },
-        department_table: true,
-        semester_table: true,
-        category_table: true,
-        student_document_table: true,
-        alumni_table: true
-    }
-};
-
 class TrainingApplication {
     static async findById(student_id: number, training_id: number) {
         const trainingApplication = await prisma.training_application_table.findUnique({
@@ -31,11 +9,6 @@ class TrainingApplication {
                     training_id,
                     student_id
                 }
-            },
-            include: {
-                training_table: true,
-                student_table: studentReviewInclude,
-                status_table: true
             }
         });
         return trainingApplication;
@@ -60,7 +33,6 @@ class TrainingApplication {
                 student_id
             },
             include: {
-                status_table: true,
                 training_table: {
                     include: {
                         user_table: {
@@ -73,7 +45,7 @@ class TrainingApplication {
             }
         });
 
-        return appliedTraining;
+        return appliedTraining
     }
 
     static async findByCreatorId(creator_id: number) {
@@ -84,13 +56,28 @@ class TrainingApplication {
                 }
             },
             include: {
-                status_table: true,
                 training_table: true,
-                student_table: studentReviewInclude
+                student_table: {
+                    include: {
+                        user_table: {
+                            select: {
+                                user_id: true,
+                                name: true,
+                                email: true,
+                                role_id: true,
+                                mobile_no: true,
+                                created_on: true,
+                                updated_on: true,
+                                last_login: true
+                            }
+                        },
+                        department_table: true
+                    }
+                }
             }
         });
 
-        return appliedTraining;
+        return appliedTraining
     }
 
     static async findByDepartmentId(department_id: number) {
@@ -104,23 +91,37 @@ class TrainingApplication {
                 }
             },
             include: {
-                status_table: true,
                 training_table: true,
-                student_table: studentReviewInclude
+                student_table: {
+                    include: {
+                        user_table: {
+                            select: {
+                                user_id: true,
+                                name: true,
+                                email: true,
+                                role_id: true,
+                                mobile_no: true,
+                                created_on: true,
+                                updated_on: true,
+                                last_login: true
+                            }
+                        },
+                        department_table: true
+                    }
+                }
             }
         });
 
-        return appliedTraining;
+        return appliedTraining
     }
 
     static async updateState(data: {
         student_id: number,
         training_id: number,
         remarks?: string | undefined,
-        status: "approve" | "reject",
-        verified_by?: number
+        status: "approve" | "reject"
     }) {
-        const status = (data.status === "approve") ? 2 : 3;
+        const status = (data.status === "approve")? 2 : 3;
         const training = await prisma.training_application_table.update({
             where: {
                 training_id_student_id: {
@@ -130,21 +131,14 @@ class TrainingApplication {
             },
             data: {
                 status_id: status,
-                remarks: data.remarks ?? null,
-                verified_by: data.verified_by ?? null,
-                verified_at: new Date()
+                remarks: data.remarks ?? null
             }
         });
 
         return training;
     }
 
-    static async approve(data: {
-        student_id: number,
-        training_id: number,
-        remarks?: string | undefined,
-        verified_by?: number
-    }) {
+    static async approve(data: {student_id: number, training_id: number, remarks?: string | undefined}) {
         const approvedTraining = await prisma.training_application_table.update({
             where: {
                 training_id_student_id: {
@@ -153,10 +147,8 @@ class TrainingApplication {
                 }
             },
             data: {
-                status_id: 2,
-                remarks: data.remarks ?? null,
-                verified_by: data.verified_by ?? null,
-                verified_at: new Date()
+                status_id: 1,
+                remarks: data.remarks ?? null
             }
         });
 
@@ -186,7 +178,8 @@ class TrainingApplication {
         if (filter.creator_id !== undefined) {
             whereClause.training_table = {
                 creator_id: filter.creator_id,
-            };
+                
+            }
         }
 
         const applicationCount = await prisma.training_application_table.count({
@@ -195,6 +188,7 @@ class TrainingApplication {
 
         return applicationCount;
     }
+
 
     static async findByFilter(filter: {
         creator_id?: number,
@@ -214,16 +208,12 @@ class TrainingApplication {
         if (filter.creator_id !== undefined) {
             whereClause.training_table = {
                 creator_id: filter.creator_id,
-            };
+                
+            }
         }
 
         const applicationCount = await prisma.training_application_table.findMany({
-            where: whereClause,
-            include: {
-                status_table: true,
-                training_table: true,
-                student_table: studentReviewInclude
-            }
+            where: whereClause
         });
 
         return applicationCount;
