@@ -1,11 +1,13 @@
 # Frontend Integration Guide - TPCMS New Features
 
-This guide provides instructions and code examples for the frontend team to integrate the newly implemented backend features:
+This guide provides instructions, API contracts, and code examples for the frontend team to integrate the newly implemented backend capabilities:
 1. **Filtering Students by Grade, Regular vs. Alumni, Semester, Branch, and Graduation Year**
 2. **Dashboard Metric Cards as Clickable Navigation Buttons**
-3. **Notification System (Broadcast to everyone, Apply restricted to eligible candidates)**
-4. **Student Document Repository & Grade Card Review**
-5. **T&P Cell Application Verification vs. Organization Role Permissions**
+3. **Open Opportunity Browsing (Students Can View All Postings Even If Ineligible)**
+4. **Notification System (Broadcast to All, Apply Restricted to Eligible Candidates)**
+5. **Student Document Repository & Grade Card Review**
+6. **T&P Cell Application Verification vs. Organization Role Permissions**
+7. **Graduation Year Management & Updates**
 
 ---
 
@@ -15,7 +17,8 @@ This guide provides instructions and code examples for the frontend team to inte
 - **Database Status Convention**:
   - `status = "Regular"`: Active current students (`graduation: false`, `is_graduate: false`).
   - `status = "Alumni"`: Graduated students (`graduation: true`, `is_graduate: true`), tracked in `alumni_table` with `passing_year`.
-- Students now return `graduation`, `is_graduate`, `status` ("Regular" | "Alumni"), `graduation_year`, `grade_card_url`, `alumni_details`, and `documents`.
+- Returned student objects include:
+  `graduation`, `is_graduate`, `status` ("Regular" | "Alumni"), `graduation_year`, `grade_card_url`, `alumni_details`, and `documents`.
 
 ### API Request
 ```http
@@ -33,7 +36,7 @@ Authorization: Bearer <token>
 | `department_id` or `branch_id` | number | `1` | Filter by department/branch ID |
 | `graduation_year` or `passing_year` | number | `2024` | Filter by graduation year or alumni passing year |
 | `has_backlog` | boolean | `false` | Filter by backlog status |
-| `search` | string | `Rahul` | Search by student name, roll number, or email |
+| `search` | string | `Rahul` | Search across student name, roll number, or email |
 
 ### Example API Response
 ```json
@@ -71,8 +74,7 @@ Authorization: Bearer <token>
 
 ### Frontend Implementation Example (React)
 ```tsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 
 export const StudentFilterBar = ({ onFilterChange }) => {
   const [filters, setFilters] = useState({
@@ -152,7 +154,7 @@ Convert dashboard summary counter boxes into clickable button cards that redirec
 ```tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, GraduationCap, Briefcase, Clock, CheckCircle } from "lucide-react";
+import { Users, GraduationCap, Briefcase, Clock } from "lucide-react";
 
 export const DashboardStats = ({ stats }) => {
   const navigate = useNavigate();
@@ -162,7 +164,7 @@ export const DashboardStats = ({ stats }) => {
       {/* 1. Regular Students Button */}
       <button
         onClick={() => navigate("/admin/students?status=regular")}
-        className="flex items-center justify-between p-5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 hover:shadow-md transition text-left"
+        className="flex items-center justify-between p-5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 hover:shadow-md transition text-left cursor-pointer"
       >
         <div>
           <p className="text-sm font-medium text-blue-600">Regular Students</p>
@@ -174,7 +176,7 @@ export const DashboardStats = ({ stats }) => {
       {/* 2. Alumni Students Button */}
       <button
         onClick={() => navigate("/admin/students?status=alumni")}
-        className="flex items-center justify-between p-5 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 hover:shadow-md transition text-left"
+        className="flex items-center justify-between p-5 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 hover:shadow-md transition text-left cursor-pointer"
       >
         <div>
           <p className="text-sm font-medium text-purple-600">Alumni Students</p>
@@ -186,7 +188,7 @@ export const DashboardStats = ({ stats }) => {
       {/* 3. Active Placements Button */}
       <button
         onClick={() => navigate("/placements")}
-        className="flex items-center justify-between p-5 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 hover:shadow-md transition text-left"
+        className="flex items-center justify-between p-5 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 hover:shadow-md transition text-left cursor-pointer"
       >
         <div>
           <p className="text-sm font-medium text-green-600">Active Placements</p>
@@ -198,7 +200,7 @@ export const DashboardStats = ({ stats }) => {
       {/* 4. Pending Review Applications Button */}
       <button
         onClick={() => navigate("/admin/applications?status=pending")}
-        className="flex items-center justify-between p-5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 hover:shadow-md transition text-left"
+        className="flex items-center justify-between p-5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 hover:shadow-md transition text-left cursor-pointer"
       >
         <div>
           <p className="text-sm font-medium text-amber-600">Pending T&P Review</p>
@@ -213,10 +215,29 @@ export const DashboardStats = ({ stats }) => {
 
 ---
 
-## 3. Notification System (Broadcast to All, Apply Restricted to Eligible Candidates)
+## 3. Open Opportunity Browsing (Viewing Postings Even If Ineligible)
+
+### Rule
+**Students can see and read all placement drives and training programs regardless of eligibility.**
+Ineligible students are never blocked from viewing details; only the submission of the application is restricted.
+
+### Endpoints
+* `GET /placements` — Returns all active campus placement postings.
+* `GET /placements/:id` — Returns full details of any placement posting.
+* `GET /trainings` — Returns all active training postings.
+* `GET /trainings/:id` — Returns full details of any training program.
+* `GET /placements/is-eligible/:id` — Check eligibility for a placement: `{ isEligible: boolean, reason: string }`.
+* `GET /trainings/is-eligible/:id` — Check eligibility for a training: `{ isEligible: boolean, reason: string }`.
+
+### Application Enforcement
+If an ineligible student attempts to submit an application (`POST /placement-applications` or `POST /training-applications`), the backend rejects it with **HTTP 400 Bad Request** and returns the specific disqualification reason (e.g. `Minimum CGPA of 7.5 required (your CGPA: 6.8)`).
+
+---
+
+## 4. Notification System (Broadcast to All, Apply Restricted to Eligible Candidates)
 
 ### Behavior
-- `GET /notifications` returns **ALL** placement and training announcements.
+- `GET /notifications` returns **ALL** active placement and training announcements to every student.
 - Each notification item is enriched with the student's eligibility assessment:
   - `is_eligible`: `true` or `false`
   - `eligibility_reason`: Explains why eligible or why rejected (e.g. `Minimum CGPA of 7.5 required (your CGPA: 6.8)`, `Application deadline has passed`, `Current semester is not eligible`).
@@ -350,49 +371,92 @@ export const NotificationFeed = () => {
 
 ---
 
-## 4. Student Document Repository & Grade Card Review
+## 5. Student Document Repository & Grade Card Review
 
-### Document Upload & Review Endpoints
+### Workflow
 1. **Upload File**:
    - `POST /uploads/document` with `multipart/form-data` (`media: <file>`).
    - Returns `{ success: true, data: "/public/document_media/172044-gradecard.pdf" }`.
-2. **Save Document in Repository**:
+2. **Save Document Record**:
    - `POST /students/documents`
    - Payload:
      ```json
      {
-       "document_type": "grade_card", // or "marksheet", "resume", "certificate"
+       "document_type": "grade_card",
        "document_name": "Semester 5 Grade Card",
        "document_url": "/public/document_media/172044-gradecard.pdf"
      }
      ```
    - *Note*: If `document_type` contains `"grade"`, the backend automatically synchronizes `student_table.grade_card_url`.
-3. **Get Documents**:
+3. **Fetch Documents**:
    - `GET /students/documents/me` (Student self)
    - `GET /students/:user_id/documents` (T&P Cell viewing student documents)
-4. **Verify Document (T&P Cell only)**:
+4. **Verify Document (T&P Cell Only)**:
    - `PATCH /students/documents/:document_id/verify` with body `{ "verified": true }`.
 5. **Delete Document**:
    - `DELETE /students/documents/:document_id`
 
 ---
 
-## 5. T&P Cell Application Verification vs. Organization Role
+## 6. T&P Cell Application Verification vs. Organization Role
 
 ### Critical Permission Rule
-- **Organizations (`role_id: 4`) CANNOT approve or reject student applications.**
-- Application approval/rejection is **strictly reserved for T&P Cell (`role_id: 1` SuperAdmin, `role_id: 3` Coordinator).**
-- Attempting an approval as an Organization will receive `403 Forbidden`.
+* **Organizations (`role_id: 4`) CANNOT approve or reject student applications.**
+* Application approval/rejection is **strictly reserved for T&P Cell (`role_id: 1` SuperAdmin, `role_id: 3` Coordinator).**
+* Attempting an approval as an Organization will receive `403 Forbidden`.
 
-### Frontend Application Review Screen Integration
-When displaying application review tables / cards:
+### Frontend Implementation
 1. **If logged in as Organization (`role_id === 4`)**:
    - Hide the "Approve" and "Reject" buttons.
    - Display the verification status badge:
-     - `application.verified_by ? "Verified & Approved by T&P Cell" : "Pending T&P Cell Verification"`
+     `application.verified_by ? "Verified & Approved by T&P Cell" : "Pending T&P Cell Verification"`
 2. **If logged in as T&P Cell (`role_id === 1 || role_id === 3`)**:
    - Render the "Review Documents" button linking to student documents and grade cards (`application.student_table.documents` or `application.student_table.grade_card_url`).
    - Render the **Approve** and **Reject** action buttons:
      - `POST /placement-applications/approve/:placement_id/:student_id`
      - `POST /placement-applications/reject/:placement_id/:student_id`
      - `POST /training-applications/update-state` with `{ student_id, training_id, status: "approve" | "reject" }`
+
+---
+
+## 7. Graduation Year Management & Updates
+
+### Supported Endpoints for Updating Graduation Year
+
+#### A. Student Self-Update
+* **Route**: `PUT /students/me`
+* **Access**: Logged-in Student
+* **Payload**:
+  ```json
+  {
+    "graduation_year": 2025,
+    "graduation": true,
+    "status": "alumni"
+  }
+  ```
+  *(Both `graduation_year` and `passing_year` are accepted by the backend).*
+
+#### B. Admin / Coordinator Update
+* **Route**: `PUT /students/:user_id`
+* **Access**: `SuperAdmin` (Role 1)
+* **Payload**:
+  ```json
+  {
+    "graduation_year": 2024,
+    "graduation": true,
+    "status": "alumni",
+    "current_company": "Infosys",
+    "designation": "Systems Engineer"
+  }
+  ```
+
+#### C. Student Registration
+* **Route**: `POST /students`
+* **Access**: `SuperAdmin` (Role 1)
+* **Payload**: Accepts `graduation_year` and `graduation` directly when creating student accounts.
+
+#### Automatic Backend Synchronization
+Updating `graduation_year` automatically:
+1. Sets `student_table.graduation_year`.
+2. Upserts `alumni_table.passing_year` with the student's passing year.
+3. Synchronizes `graduation: true`, `is_graduate: true`, and `status: "Alumni"`.
