@@ -1,8 +1,26 @@
 import type { Request, Response, NextFunction } from "express";
-import { registerStudentService, updateStudentAdminService, updateStudentService, getStudentByIdService, getStudentService } from "./student.service.js";
+import { 
+    registerStudentService, 
+    updateStudentAdminService, 
+    updateStudentService, 
+    getStudentByIdService, 
+    getStudentService,
+    addStudentDocumentService,
+    getStudentDocumentsService,
+    deleteStudentDocumentService,
+    verifyStudentDocumentService
+} from "./student.service.js";
 import type { UserJwtPayload } from "../../utils/jwt.util.js";
 import Student from "./student.model.js";
-import type { StudentIdParamInput, StudentRegisterInput, StudentUpdateAdminInput, StudentUpdateInput } from "./student.type.js";
+import type { 
+    StudentDocumentCreateInput, 
+    StudentDocumentVerifyInput, 
+    StudentFilterQuery, 
+    StudentIdParamInput, 
+    StudentRegisterInput, 
+    StudentUpdateAdminInput, 
+    StudentUpdateInput 
+} from "./student.type.js";
 import Data from "../../utils/data.util.js";
 
 export const registerStudentController = async (
@@ -63,8 +81,20 @@ export const getStudentController = async (
     next: NextFunction
 ) => {
     try {
-        const studentList = await getStudentService(req.user as UserJwtPayload);
-        const sanitizedList = studentList.map((student) => Data.sanitize(student));
+        const filter = req.query as unknown as StudentFilterQuery;
+        const studentList = await getStudentService(req.user as UserJwtPayload, filter);
+        const sanitizedList = studentList.map((student: any) => {
+            const sanitized = Data.sanitize(student);
+            const isGraduateStatus = Boolean(sanitized.graduation ?? sanitized.is_graduate);
+            sanitized.graduation = isGraduateStatus;
+            sanitized.is_graduate = isGraduateStatus;
+            sanitized.status = isGraduateStatus ? "Alumni" : "Regular";
+            sanitized.graduation_year = student.graduation_year ?? student.alumni_table?.passing_year ?? null;
+            sanitized.grade_card_url = student.grade_card_url ?? null;
+            sanitized.alumni_details = student.alumni_table ?? null;
+            sanitized.documents = student.student_document_table ?? [];
+            return sanitized;
+        });
         res.status(200).json({
             success: true,
             message: "Successfully fetched students",
@@ -82,26 +112,39 @@ export const getStudentMeController = async (
 ) => {
     try {
         const actor = req.user as UserJwtPayload;
-        const student = await getStudentByIdService(actor.auth_user_id, actor);
+        const student: any = await getStudentByIdService(actor.auth_user_id, actor);
+        const isGraduateStatus = Boolean(student.graduation ?? student.is_graduate);
         res.status(200).json({
             success: true,
             message: "Successfully fetched profile",
             data: {
+                user_id: student.user_id,
                 name: student.user_table.name,
                 mobile_no: student.user_table.mobile_no,
                 email: student.user_table.email,
                 department: student.department_table?.department_name,
+                department_id: student.department_id,
                 category: student.category_table?.category,
+                category_id: student.category_id,
                 gender: student.gender_table?.gender,
+                gender_id: student.gender_id,
                 cgpa: student.cgpa,
                 semester: student.semester_table?.semester,
-                skill: student.student_skill_table.map((skill) => skill.skill_table.skill),
+                semester_id: student.semester_id,
+                skill: student.student_skill_table?.map((skill: any) => skill.skill_table?.skill) ?? [],
                 tenth_division: student.division_table_student_table_tenth_division_idTodivision_table?.division,
                 twelfth_division: student.division_table_student_table_twelfth_division_idTodivision_table?.division,
                 date_of_birth: student.date_of_birth,
                 roll_no: student.roll_no,
                 image_url: student.image_url,
-                resume_url: student.resume_url
+                resume_url: student.resume_url,
+                grade_card_url: student.grade_card_url,
+                graduation_year: student.graduation_year ?? student.alumni_table?.passing_year ?? null,
+                graduation: isGraduateStatus,
+                is_graduate: isGraduateStatus,
+                status: isGraduateStatus ? "Alumni" : "Regular",
+                alumni_details: student.alumni_table ?? null,
+                documents: student.student_document_table ?? []
             }
         });
     } catch (error) {
@@ -117,27 +160,134 @@ export const getStudentByIdController = async (
     try {
         const actor = req.user as UserJwtPayload;
         const { user_id } = req.params as StudentIdParamInput;
-        const student = await getStudentByIdService(Number(user_id), actor);
+        const student: any = await getStudentByIdService(Number(user_id), actor);
+        const isGraduateStatus = Boolean(student.graduation ?? student.is_graduate);
         res.status(200).json({
             success: true,
             message: "Successfully fetched student profile",
             data: {
+                user_id: student.user_id,
                 email: student.user_table.email,
                 mobile_no: student.user_table.mobile_no,
                 name: student.user_table.name,
                 category: student.category_table?.category,
+                category_id: student.category_id,
                 department: student.department_table?.department_name,
+                department_id: student.department_id,
                 gender: student.gender_table?.gender,
+                gender_id: student.gender_id,
                 cgpa: student.cgpa,
                 semester: student.semester_table?.semester,
-                skill: student.student_skill_table.map((skill) => skill.skill_table.skill),
+                semester_id: student.semester_id,
+                skill: student.student_skill_table?.map((skill: any) => skill.skill_table?.skill) ?? [],
                 tenth_division: student.division_table_student_table_tenth_division_idTodivision_table?.division,
                 twelfth_division: student.division_table_student_table_twelfth_division_idTodivision_table?.division,
                 date_of_birth: student.date_of_birth,
                 roll_no: student.roll_no,
                 image_url: student.image_url,
-                resume_url: student.resume_url
+                resume_url: student.resume_url,
+                grade_card_url: student.grade_card_url,
+                graduation_year: student.graduation_year ?? student.alumni_table?.passing_year ?? null,
+                graduation: isGraduateStatus,
+                is_graduate: isGraduateStatus,
+                status: isGraduateStatus ? "Alumni" : "Regular",
+                alumni_details: student.alumni_table ?? null,
+                documents: student.student_document_table ?? []
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+// ==========================================
+// Student Document Controllers
+// ==========================================
+
+export const addStudentDocumentController = async (
+    req: Request<{}, {}, StudentDocumentCreateInput>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const actor = req.user as UserJwtPayload;
+        const doc = await addStudentDocumentService(actor, req.body);
+        res.status(201).json({
+            success: true,
+            message: "Document uploaded and saved successfully",
+            data: doc
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getStudentDocumentsMeController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const actor = req.user as UserJwtPayload;
+        const docs = await getStudentDocumentsService(actor.auth_user_id, actor);
+        res.status(200).json({
+            success: true,
+            message: "Documents fetched successfully",
+            data: docs
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getStudentDocumentsByUserIdController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const actor = req.user as UserJwtPayload;
+        const userId = Number(req.params.user_id);
+        const docs = await getStudentDocumentsService(userId, actor);
+        res.status(200).json({
+            success: true,
+            message: "Documents fetched successfully",
+            data: docs
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const deleteStudentDocumentController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const actor = req.user as UserJwtPayload;
+        const docId = Number(req.params.document_id);
+        const result = await deleteStudentDocumentService(docId, actor);
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const verifyStudentDocumentController = async (
+    req: Request<{ document_id: string }, {}, StudentDocumentVerifyInput>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const actor = req.user as UserJwtPayload;
+        const docId = Number(req.params.document_id);
+        const verified = req.body.verified !== undefined ? Boolean(req.body.verified) : true;
+        const updatedDoc = await verifyStudentDocumentService(docId, verified, actor);
+        res.status(200).json({
+            success: true,
+            message: `Document ${verified ? "verified" : "unverified"} successfully`,
+            data: updatedDoc
         });
     } catch (error) {
         next(error);

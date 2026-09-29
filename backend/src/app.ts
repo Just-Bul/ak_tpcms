@@ -20,6 +20,7 @@ import { globalRateLimiter } from "./middlewares/rate_limitter.middleware.js";
 import masterRouter from "./modules/master/master.routes.js";
 import morgan from "morgan";    
 import notesRouter from "./modules/notes/notes.route.js";
+import notificationRouter from "./modules/notification/notification.route.js";
 
 
 const app = express();
@@ -43,6 +44,7 @@ app.use("/placements", placementRouter);
 app.use("/placement-applications", placementApplicationRouter);
 app.use("/dashboards", dashboardRouter);
 app.use("/notes", notesRouter);
+app.use("/notifications", notificationRouter);
 
 app.use("/masters", masterRouter);
 

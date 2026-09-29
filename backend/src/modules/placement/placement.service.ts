@@ -83,7 +83,7 @@ export const getOnePlacementService = async (placement_id: number, actor: UserJw
 }
 
 export const checkStudentPlacementEligibilityService = async (placement_id: number, actor: UserJwtPayload): Promise<PlacementEligibilityResult> => {
-    const placement = await Placement.findById(placement_id);
+    const placement: any = await Placement.findById(placement_id);
     if (!placement) {
         throw new ApiError(404, "Placement does not exist");
     }
@@ -93,18 +93,114 @@ export const checkStudentPlacementEligibilityService = async (placement_id: numb
             reason: "Placement is not active"
         };
     }
+
+    if (placement.last_date_of_submission) {
+        const now = new Date();
+        const deadline = new Date(placement.last_date_of_submission);
+        deadline.setHours(23, 59, 59, 999);
+        if (now > deadline) {
+            return {
+                isEligible: false,
+                reason: "Application deadline for this placement has passed"
+            };
+        }
+    }
     
     const student = await Student.findById(actor.auth_user_id);
     if (!student) {
         throw new ApiError(404, "Student does not exist");
     }
 
-
+    // Minimum CGPA Check
     if (placement.min_cgpa !== null) {
         if (student.cgpa === null) {
             return {
                 isEligible: false,
-                reason: "Placement requires minimum cgpa, but student has not set their cgpa"
+                reason: `Placement requires minimum CGPA of ${placement.min_cgpa}, but your CGPA is not set`
+            };
+        }
+        const studentCgpa = Number(student.cgpa);
+        const minCgpa = Number(placement.min_cgpa);
+        if (studentCgpa < minCgpa) {
+            return {
+                isEligible: false,
+                reason: `CGPA requirement not met (Minimum: ${minCgpa}, Your CGPA: ${studentCgpa})`
+            };
+        }
+    }
+
+    // Backlog Check
+    if (placement.has_backlog === false && student.has_backlog === true) {
+        return {
+            isEligible: false,
+            reason: "This placement does not allow active backlogs"
+        };
+    }
+
+    // 10th Division Check
+    if (placement.min_tenth_division_id !== null) {
+        if (!student.tenth_division_id) {
+            return {
+                isEligible: false,
+                reason: "10th standard division not specified in student profile"
+            };
+        }
+        if (student.tenth_division_id > placement.min_tenth_division_id) {
+            return {
+                isEligible: false,
+                reason: "10th standard division requirement not met"
+            };
+        }
+    }
+
+    // 12th Division Check
+    if (placement.min_twelfth_division_id !== null) {
+        if (!student.twelfth_division_id) {
+            return {
+                isEligible: false,
+                reason: "12th standard division not specified in student profile"
+            };
+        }
+        if (student.twelfth_division_id > placement.min_twelfth_division_id) {
+            return {
+                isEligible: false,
+                reason: "12th standard division requirement not met"
+            };
+        }
+    }
+
+    // Department / Branch Filter
+    const allowedDepts = placement.placement_department_table || [];
+    if (allowedDepts.length > 0) {
+        const deptIds = allowedDepts.map((d: any) => d.department_id);
+        if (!student.department_id || !deptIds.includes(student.department_id)) {
+            return {
+                isEligible: false,
+                reason: "Your department/branch is not eligible for this placement drive"
+            };
+        }
+    }
+
+    // Category Filter
+    const allowedCategories = placement.placement_category_table || [];
+    if (allowedCategories.length > 0) {
+        const catIds = allowedCategories.map((c: any) => c.category_id);
+        if (!student.category_id || !catIds.includes(student.category_id)) {
+            return {
+                isEligible: false,
+                reason: "Your category is not eligible for this placement drive"
+            };
+        }
+    }
+
+    // Semester Filter
+    const allowedSemesters = placement.placement_semester_table || [];
+    if (allowedSemesters.length > 0) {
+        const semIds = allowedSemesters.map((s: any) => s.semester_id);
+        if (!student.semester_id || !semIds.includes(student.semester_id)) {
+            return {
+                isEligible: false,
+                reason: "Your current semester is not eligible for this placement drive"
             };
         }
     }
@@ -112,5 +208,5 @@ export const checkStudentPlacementEligibilityService = async (placement_id: numb
     return {
         isEligible: true,
         reason: "Student is Eligible"
-    }
-}
+    };
+};
