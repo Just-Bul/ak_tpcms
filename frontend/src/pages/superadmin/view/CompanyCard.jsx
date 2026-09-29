@@ -1,16 +1,15 @@
-import { motion } from "framer-motion";
+import { useState } from 'react'
 import {
   Building2,
+  Eye,
   Mail,
   Phone,
   Calendar,
-  CheckCircle2,
-  XCircle,
-  Clock3,
   FileText,
-} from "lucide-react";
+} from 'lucide-react'
 
-import { Card, CardBody, Badge, Button } from "../../../components/ui";
+import { Button, Badge } from '../../../components/ui'
+import CompanyApplicationModal from '../../../components/modals/CompanyApplicationModal'
 
 export default function CompanyCard({
   company,
@@ -19,164 +18,344 @@ export default function CompanyCard({
   onApprove,
   onReject,
 }) {
-  const email = company.email || "No email available";
-  const mobile = company.mobile_no || "No mobile number available";
-  const registeredDate = company.created_on
-    ? new Date(company.created_on).toLocaleDateString()
-    : "N/A";
-  const rejectionRemark = company.remarks || "No rejection remark provided.";
+  const [showApplication, setShowApplication] = useState(false)
 
-  const getStatus = () => {
-    switch (tab) {
-      case "approved":
-        return {
-          text: "Approved",
-          variant: "success",
-          icon: <CheckCircle2 size={14} />,
-        };
+  if (!company) return null
 
-      case "rejected":
-        return {
-          text: "Rejected",
-          variant: "danger",
-          icon: <XCircle size={14} />,
-        };
+  /*
+   * The CompaniesPage already fetches the correct list:
+   *
+   * pending  -> /organizations?status=pending
+   * approved -> /organizations?status=approved
+   * rejected -> /organizations?status=rejected
+   *
+   * Therefore the tab is the reliable status for this card.
+   *
+   * If backend eventually returns a normalized `status`,
+   * it will still be respected.
+   */
+  const status = String(
+    company.status || tab || 'pending'
+  ).toLowerCase()
 
-      default:
-        return {
-          text: "Pending",
-          variant: "warning",
-          icon: <Clock3 size={14} />,
-        };
-    }
-  };
+  const isPending = status === 'pending'
+  const isApproved = status === 'approved'
+  const isRejected = status === 'rejected'
 
-  const status = getStatus();
+  const statusLabel = isApproved
+    ? 'Approved'
+    : isRejected
+      ? 'Rejected'
+      : 'Pending'
+
+  const statusVariant = isApproved
+    ? 'success'
+    : isRejected
+      ? 'danger'
+      : 'warning'
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <Card className="h-full hover:border-orbit-primary/40 transition-all">
-        <CardBody>
-          <div className="flex flex-col gap-4">
+    <>
+      {/* =====================================================
+          COMPANY CARD
+      ===================================================== */}
 
-            {/* Logo */}
+      <div
+        className="
+          w-full
+          min-w-0
+          overflow-hidden
+          rounded-2xl
+          border border-orbit-border
+          bg-orbit-surface
+          shadow-sm
+          transition-all
+          duration-200
+          hover:border-orbit-primary/30
+          hover:shadow-lg
+        "
+      >
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
-            <div className="w-12 h-12 rounded-xl bg-orbit-primary/10 border border-orbit-primary/20 flex items-center justify-center flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 p-5">
+
+          <div className="flex min-w-0 items-center gap-3">
+
+            {/* Icon */}
+            <div
+              className="
+                flex
+                h-12
+                w-12
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-orbit-primary/20
+                bg-orbit-primary/10
+              "
+            >
               <Building2
                 size={22}
                 className="text-orbit-primary-light"
               />
             </div>
 
-            {/* Details */}
+            {/* Company */}
+            <div className="min-w-0">
 
-            <div className="flex-1">
+              <h3
+                className="
+                  truncate
+                  text-base
+                  font-semibold
+                  text-orbit-text-primary
+                "
+              >
+                {company.name || 'Unnamed Company'}
+              </h3>
 
-              <div className="flex flex-col gap-2">
-
-                <div>
-                  <h3 className="text-base font-semibold text-slate-100 break-words">
-                    {company.name}
-                  </h3>
-
-                  <Badge
-                    variant={status.variant}
-                    className="mt-1 inline-flex items-center gap-1"
-                  >
-                    {status.icon}
-                    {status.text}
-                  </Badge>
-                </div>
-
-              </div>
-
-              {/* Company Information */}
-
-              <div className="grid grid-cols-1 gap-y-3 mt-5">
-
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <Mail size={15} />
-                  <span className="break-all">{email}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <Phone size={15} />
-                  <span>{mobile}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <Calendar size={15} />
-
-                  <span>{registeredDate}</span>
-                </div>
-
-              </div>
-
-              {/* Rejection Remark */}
-
-              {tab === "rejected" && (
-                <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText
-                      size={16}
-                      className="text-red-400"
-                    />
-
-                    <p className="font-medium text-red-300">
-                      Rejection Remark
-                    </p>
-                  </div>
-
-                  <p className="text-sm text-slate-300 leading-6">
-                    {rejectionRemark}
-                  </p>
-
-                </div>
-              )}
-
-              {/* Actions */}
-
-              {tab === "pending" && (
-                <div className="mt-6 flex flex-wrap gap-3">
-
-                  <Button
-                    loading={loading}
-                    onClick={() => onApprove(company)}
-                    className="min-w-[120px]"
-                  >
-                    <CheckCircle2
-                      size={16}
-                      className="mr-2"
-                    />
-                    Approve
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    loading={loading}
-                    onClick={() => onReject(company)}
-                    className="min-w-[120px]"
-                  >
-                    <XCircle
-                      size={16}
-                      className="mr-2"
-                    />
-                    Reject
-                  </Button>
-
-                </div>
-              )}
+              <p className="mt-1 truncate text-xs text-slate-500">
+                Company Registration
+              </p>
 
             </div>
 
           </div>
-        </CardBody>
-      </Card>
-    </motion.div>
-  );
+
+          {/* Status */}
+          <div className="shrink-0">
+            <Badge variant={statusVariant}>
+              {statusLabel}
+            </Badge>
+          </div>
+
+        </div>
+
+
+        {/* ===================================================
+            COMPANY INFORMATION
+        =================================================== */}
+
+        <div className="space-y-3 px-5 pb-5">
+
+          {/* Email */}
+          <div className="flex min-w-0 items-center gap-3">
+
+            <Mail
+              size={16}
+              className="shrink-0 text-slate-500"
+            />
+
+            <span className="truncate text-sm text-slate-300">
+              {company.email || 'No email provided'}
+            </span>
+
+          </div>
+
+
+          {/* Mobile */}
+          <div className="flex min-w-0 items-center gap-3">
+
+            <Phone
+              size={16}
+              className="shrink-0 text-slate-500"
+            />
+
+            <span className="truncate text-sm text-slate-300">
+              {company.mobile_no || 'No mobile provided'}
+            </span>
+
+          </div>
+
+
+          {/* Date */}
+          <div className="flex min-w-0 items-center gap-3">
+
+            <Calendar
+              size={16}
+              className="shrink-0 text-slate-500"
+            />
+
+            <span className="truncate text-sm text-slate-300">
+              {company.created_on
+                ? new Date(
+                    company.created_on
+                  ).toLocaleDateString()
+                : 'Date unavailable'}
+            </span>
+
+          </div>
+
+        </div>
+
+
+        {/* ===================================================
+            SUPPORTING DOCUMENT
+        =================================================== */}
+
+        <div className="border-t border-orbit-border px-5 py-4">
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowApplication(true)
+            }
+            className="
+              flex
+              w-full
+              min-w-0
+              items-center
+              justify-between
+              rounded-xl
+              border
+              border-orbit-border
+              bg-orbit-surface2
+              px-4
+              py-3
+              text-left
+              transition-colors
+              hover:border-orbit-primary/40
+              hover:bg-orbit-primary/5
+            "
+          >
+
+            <div className="flex min-w-0 items-center gap-3">
+
+              <FileText
+                size={17}
+                className="
+                  shrink-0
+                  text-orbit-primary-light
+                "
+              />
+
+              <div className="min-w-0">
+
+                <p className="text-sm font-medium text-slate-200">
+                  Supporting Document
+                </p>
+
+                <p className="truncate text-xs text-slate-500">
+                  Click to view application
+                </p>
+
+              </div>
+
+            </div>
+
+            <Eye
+              size={17}
+              className="shrink-0 text-slate-400"
+            />
+
+          </button>
+
+        </div>
+
+
+        {/* ===================================================
+            ACTIONS
+        =================================================== */}
+
+        <div
+          className="
+            flex
+            flex-col
+            gap-3
+            border-t
+            border-orbit-border
+            p-5
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
+
+          {/* View Application */}
+
+          <Button
+            variant="outline"
+            onClick={() =>
+              setShowApplication(true)
+            }
+            className="w-full sm:flex-1"
+          >
+            <Eye
+              size={15}
+              className="mr-2"
+            />
+
+            View Application
+          </Button>
+
+
+          {/* =================================================
+              ONLY PENDING COMPANIES CAN BE APPROVED/REJECTED
+          ================================================= */}
+
+          {isPending && (
+
+            <div className="flex w-full gap-2 sm:w-auto">
+
+              <Button
+                variant="destructive"
+                loading={loading}
+                onClick={() =>
+                  onReject?.(company)
+                }
+                className="
+                  flex-1
+                  sm:flex-none
+                "
+              >
+                Reject
+              </Button>
+
+
+              <Button
+                loading={loading}
+                onClick={() =>
+                  onApprove?.(company)
+                }
+                className="
+                  flex-1
+                  sm:flex-none
+                "
+              >
+                Approve
+              </Button>
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          APPLICATION MODAL
+      ===================================================== */}
+
+      <CompanyApplicationModal
+        company={{
+          ...company,
+          status,
+        }}
+        open={showApplication}
+        loading={loading}
+        onClose={() =>
+          setShowApplication(false)
+        }
+        onApprove={onApprove}
+        onReject={onReject}
+      />
+
+    </>
+  )
 }

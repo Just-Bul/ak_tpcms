@@ -155,6 +155,13 @@ function normalizeStudent(raw = {}) {
       studentStatus,
 
     /* =====================================================
+       Backlog
+    ===================================================== */
+
+    has_backlog:
+      Boolean(raw.has_backlog),
+
+    /* =====================================================
        Image
     ===================================================== */
 
@@ -304,12 +311,7 @@ export default function StudentsPage() {
     async () => {
       const res =
         await api.get('/students/')
-
-        console.log("STUDENTS RESPONSE:", res)
-        console.log("STUDENTS RESPONSE DATA:", res?.data)
-        console.log("STUDENTS RESPONSE DATA LENGTH:", 
-          Array.res?.data?.data)
-  
+      return Array.isArray(res?.data) ? res.data : []
     }
   )
 
@@ -330,23 +332,6 @@ const students = useMemo(() => {
   const list = Array.isArray(rawStudents)
     ? rawStudents
     : []
-
-  console.log('RAW STUDENTS:', list)
-  console.log('RAW STUDENTS LENGTH:', list.length)
-
-  if (list.length > 0) {
-    console.table(
-      list.map((student) => ({
-        user_id: student.user_id,
-        roll_no: student.roll_no,
-        name: student.user_table?.name,
-        is_graduate: student.is_graduate,
-        graduation_year: student.graduation_year,
-        student_status: student.student_status,
-      }))
-    )
-  }
-
   return list.map(normalizeStudent)
 }, [rawStudents])
 
@@ -416,11 +401,25 @@ const students = useMemo(() => {
                 student.cgpa ?? ''
               ).toLowerCase()
 
-            const matches =
-              name.includes(q) ||
-              rollNo.includes(q) ||
-              email.includes(q) ||
-              cgpa.includes(q)
+            // If the search query looks like a number, treat it as a minimum CGPA filter
+            const searchAsNumber = Number(q)
+            const isCgpaSearch = q !== '' && !Number.isNaN(searchAsNumber)
+
+            let matches
+            if (isCgpaSearch) {
+              const studentCgpaNum = Number(student.cgpa)
+              matches =
+                name.includes(q) ||
+                rollNo.includes(q) ||
+                email.includes(q) ||
+                (!Number.isNaN(studentCgpaNum) && studentCgpaNum >= searchAsNumber)
+            } else {
+              matches =
+                name.includes(q) ||
+                rollNo.includes(q) ||
+                email.includes(q) ||
+                cgpa.includes(q)
+            }
 
             if (!matches) {
               return false
@@ -917,7 +916,7 @@ const students = useMemo(() => {
             onChange={
               setSearch
             }
-            placeholder="Search by name, roll no, email, or CGPA..."
+            placeholder="Search by name, roll no, email, or min CGPA..."
             className="sm:max-w-sm"
           />
 

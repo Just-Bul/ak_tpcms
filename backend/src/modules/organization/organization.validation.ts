@@ -6,7 +6,8 @@ export const organizationRegisterSchema = z.object({
         email: z.email("Enter valid email"),
         mobile_no: z.string().length(10, "Phone number must be string with 10 numbers"),
         password: z.string().min(6, "Password must be atleast 6 character"),
-        sector_id: z.number("Sector must be converted to sector id").optional()
+        sector_id: z.number("Sector must be converted to sector id").optional(),
+        document_url: z.string({ message: "document_url must be a string" }).optional()
     }).strict()
 });
 

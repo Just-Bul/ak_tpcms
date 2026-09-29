@@ -38,12 +38,20 @@ class Student {
         const where: Prisma.student_tableWhereInput = {};
         if (!filter) return where;
 
-        // 1. Status: Active = Regular, Disabled = Alumni
+        // 1. Status filter using student_status column
         const status = filter.status?.toLowerCase();
-        if (status === "regular" || status === "active" || filter.is_graduate === false || filter.graduation === false) {
-            where.is_graduate = false;
-        } else if (status === "alumni" || status === "disabled" || filter.is_graduate === true || filter.graduation === true) {
-            where.is_graduate = true;
+        if (status === "active" || status === "regular") {
+            where.student_status = "ACTIVE";
+        } else if (status === "alumni") {
+            where.student_status = "ALUMNI";
+        } else if (status === "disabled") {
+            where.student_status = "DISABLED";
+        }
+        // Legacy boolean filters (backwards compat)
+        if (filter.is_graduate === true || filter.graduation === true) {
+            where.student_status = "ALUMNI";
+        } else if (filter.is_graduate === false || filter.graduation === false) {
+            where.student_status = "ACTIVE";
         }
 
         // 2. Grade / CGPA filter (e.g. min_cgpa, max_cgpa, grade)
@@ -230,13 +238,44 @@ class Student {
             name: updateData.name
         });
 
-        // Determine graduation status from is_graduate, graduation, or status enum
-        let isGraduateValue = updateData.graduation !== undefined ? updateData.graduation : updateData.is_graduate;
+        // Determine student_status from the status field or is_graduate/graduation
+        let studentStatus: string | undefined = undefined;
+        let isGraduateValue: boolean | undefined = undefined;
+        let graduationValue: boolean | undefined = undefined;
+
         if (updateData.status) {
             const st = updateData.status.toLowerCase();
-            if (st === "regular" || st === "active") isGraduateValue = false;
-            else if (st === "alumni" || st === "disabled") isGraduateValue = true;
+            if (st === "active" || st === "regular") {
+                studentStatus = "ACTIVE";
+                isGraduateValue = false;
+                graduationValue = false;
+            } else if (st === "alumni") {
+                studentStatus = "ALUMNI";
+                isGraduateValue = true;
+                graduationValue = true;
+            } else if (st === "disabled") {
+                studentStatus = "DISABLED";
+                isGraduateValue = false;
+                graduationValue = false;
+            }
+        } else {
+            // Legacy: derive from is_graduate / graduation booleans
+            isGraduateValue = updateData.graduation !== undefined ? updateData.graduation as boolean : updateData.is_graduate as boolean | undefined;
+            if (isGraduateValue === true) {
+                studentStatus = "ALUMNI";
+                graduationValue = true;
+            } else if (isGraduateValue === false) {
+                studentStatus = "ACTIVE";
+                graduationValue = false;
+            }
         }
+
+        // If going to ACTIVE or DISABLED, clear graduation_year
+        const resolvedGradYear = studentStatus === "ALUMNI"
+            ? (updateData.graduation_year ?? updateData.passing_year)
+            : (studentStatus === "ACTIVE" || studentStatus === "DISABLED")
+                ? null
+                : (updateData.graduation_year ?? updateData.passing_year);
 
         const studentData: Prisma.student_tableUncheckedUpdateInput = Data.filterUndefined({
             has_backlog: updateData.has_backlog,
@@ -252,8 +291,9 @@ class Student {
             date_of_birth: updateData.date_of_birth,
             roll_no: updateData.roll_no,
             is_graduate: isGraduateValue,
-            graduation: isGraduateValue,
-            graduation_year: updateData.graduation_year ?? updateData.passing_year,
+            graduation: graduationValue,
+            graduation_year: resolvedGradYear,
+            student_status: studentStatus,
             grade_card_url: updateData.grade_card_url
         });
 
@@ -304,8 +344,8 @@ class Student {
                 include: Student.studentIncludes
             });
 
-            // Upsert alumni_table if marked as graduate / alumni, or if passing_year provided
-            if (isGraduateValue === true || updateData.passing_year !== undefined || updateData.graduation_year !== undefined) {
+            // Upsert alumni_table if marked as ALUMNI
+            if (studentStatus === "ALUMNI" || isGraduateValue === true) {
                 const rawYear = updateData.passing_year ?? updateData.graduation_year ?? updated.graduation_year ?? new Date().getFullYear();
                 const year = typeof rawYear === "number" ? rawYear : Number(rawYear) || new Date().getFullYear();
                 const updateYear = updateData.passing_year !== undefined || updateData.graduation_year !== undefined
@@ -326,8 +366,8 @@ class Student {
                         designation: updateData.designation
                     })
                 });
-            } else if (isGraduateValue === false) {
-                // If explicitly set back to regular, remove alumni record if exists
+            } else if (studentStatus === "ACTIVE" || studentStatus === "DISABLED" || isGraduateValue === false) {
+                // Remove alumni record when switching away from alumni
                 await tx.alumni_table.deleteMany({
                     where: { user_id }
                 });

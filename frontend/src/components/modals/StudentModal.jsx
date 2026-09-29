@@ -432,8 +432,22 @@ export function StudentModal({
               form.has_backlog,
 
             /*
-             * EXISTING BACKEND FIELD
+             * Send status for proper 3-state lifecycle
              */
+            status:
+              form.student_status === 'ALUMNI'
+                ? 'alumni'
+                : form.student_status === 'DISABLED'
+                  ? 'disabled'
+                  : 'active',
+
+            /*
+             * Send graduation_year when Alumni
+             */
+            ...(form.student_status === 'ALUMNI' && form.graduation_year
+              ? { graduation_year: Number(form.graduation_year) }
+              : {}),
+
             is_graduate:
               form.is_graduate,
 

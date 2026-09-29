@@ -1,8 +1,9 @@
 import { useEffect, useState} from 'react'
-import { Download, Mail, Phone, Building2, GraduationCap, Award, Calendar, VenusAndMars } from 'lucide-react'
+import { Download, Mail, Phone, Building2, GraduationCap, Award, Calendar, VenusAndMars, AlertTriangle } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { Loading } from '@/components/common/Loading'
 import { Badge, Avatar, Button } from '@/components/ui'
+import { StudentDocumentsPanel } from '@/components/StudentDocumentsPanel'
 import api from '@/services/api'
 import { getAssetUrl } from '@/utils/getAssetUrl'
 import { formatDate } from '@/utils/formatDateTime'
@@ -39,6 +40,10 @@ export function StudentDetailModal({ open, onClose, studentId }) {
     }
   }, [open, studentId])
 
+  const studentStatus = student?.student_status || (student?.is_graduate ? 'ALUMNI' : 'ACTIVE')
+  const statusVariant = studentStatus === 'DISABLED' ? 'danger' : studentStatus === 'ALUMNI' ? 'neutral' : 'success'
+  const statusLabel = studentStatus === 'DISABLED' ? 'Disabled' : studentStatus === 'ALUMNI' ? 'Alumni' : 'Active'
+
   return (
     <Modal open={open} onClose={onClose} title="Student Profile" size="lg">
       {loading ? (
@@ -59,11 +64,15 @@ export function StudentDetailModal({ open, onClose, studentId }) {
               <h3 className="text-lg font-semibold text-orbit-text-primary">{student.name}</h3>
               <p className="text-sm text-slate-500">{student.roll_no}</p>
               <div className="flex flex-wrap gap-2 mt-2">
+                <Badge variant={statusVariant}>{statusLabel}</Badge>
                 {student.department && (
                   <Badge variant="neutral"><Building2 size={11} className="mr-1" />{student.department}</Badge>
                 )}
                 {student.semester && (
                   <Badge variant="neutral"><GraduationCap size={11} className="mr-1" />Semester {student.semester}</Badge>
+                )}
+                {student.has_backlog && (
+                  <Badge variant="warning"><AlertTriangle size={11} className="mr-1" />Backlog</Badge>
                 )}
               </div>
             </div>
@@ -75,6 +84,13 @@ export function StudentDetailModal({ open, onClose, studentId }) {
             <StatTile icon={<Calendar size={16} />} label="Date of Birth" value={formatDate(student.date_of_birth)} />
             <StatTile icon={<Award size={16} />} label="Category" value={student.category || '—'} />
           </div>
+
+          {studentStatus === 'ALUMNI' && student.graduation_year && (
+            <div className="rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4">
+              <p className="text-xs text-slate-500 mb-1">Graduation Year</p>
+              <p className="text-sm font-medium text-orbit-text-primary">{student.graduation_year}</p>
+            </div>
+          )}
 
           <div className="grid sm:grid-cols-2 gap-3">
             <ContactRow icon={<Mail size={16} />} label="Email" value={student.email} />
@@ -117,6 +133,11 @@ export function StudentDetailModal({ open, onClose, studentId }) {
               <p className="text-sm text-slate-500">No resume uploaded.</p>
             )}
           </div>
+
+          {/* Document Repository */}
+          <div className="border-t border-orbit-border pt-4">
+            <StudentDocumentsPanel studentId={studentId} readonly={false} />
+          </div>
         </div>
       )}
     </Modal>
@@ -146,3 +167,4 @@ function ContactRow({ icon, label, value }) {
 }
 
 export default StudentDetailModal
+

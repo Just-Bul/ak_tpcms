@@ -28,7 +28,8 @@ export const createPlacementService = async (input: PlacementCreateInput, actor:
         min_cgpa: input.min_cgpa ?? null,
         image_url: input.image_url ?? null,
         last_date_of_submission: input.last_date_of_submission ?? null,
-        is_active: input.is_active ?? null,
+        // Organization posts require SuperAdmin approval before going active
+        is_active: actor.auth_role_id === Role.Organization ? false : (input.is_active ?? true),
         min_tenth_division_id: input.min_tenth_division_id ?? null,
         min_twelfth_division_id: input.min_twelfth_division_id ?? null,
         has_backlog: input.has_backlog ?? null,

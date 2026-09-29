@@ -191,6 +191,7 @@ model student_table {
   is_graduate                                                      Boolean?                      @default(false)
   graduation                                                       Boolean?                      @default(false)
   graduation_year                                                  Int?
+  student_status                                                   String                        @default("ACTIVE") @db.VarChar(20)
   grade_card_url                                                   String?                       @db.VarChar(255)
   category_id                                                      Int?                          @default(1)
   resume_url                                                       String?                       @db.VarChar(255)

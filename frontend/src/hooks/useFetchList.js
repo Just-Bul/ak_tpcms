@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export function useFetchList(fetcher, { enabled = true } = {}) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState(null)
   const [version, setVersion] = useState(0)
+
+  // Store fetcher in a ref so we always call the latest version
+  // without needing it in the dependency array (which causes infinite loops
+  // when callers pass inline arrow functions)
+  const fetcherRef = useRef(fetcher)
+  fetcherRef.current = fetcher
 
   const refetch = useCallback(() => {
     setVersion((v) => v + 1)
@@ -23,19 +29,7 @@ export function useFetchList(fetcher, { enabled = true } = {}) {
         setLoading(true)
         setError(null)
 
-        const result = await fetcher()
-
-        console.log('useFetchList RESULT:', result)
-        console.log(
-          'useFetchList RESULT IS ARRAY:',
-          Array.isArray(result)
-        )
-        console.log(
-          'useFetchList RESULT LENGTH:',
-          Array.isArray(result)
-            ? result.length
-            : 'NOT ARRAY'
-        )
+        const result = await fetcherRef.current()
 
         if (!cancelled) {
           setData(
@@ -65,7 +59,7 @@ export function useFetchList(fetcher, { enabled = true } = {}) {
     return () => {
       cancelled = true
     }
-  }, [enabled, version, fetcher])
+  }, [enabled, version])
 
   return {
     data,
@@ -76,4 +70,4 @@ export function useFetchList(fetcher, { enabled = true } = {}) {
   }
 }
 
-export default useFetchList
+export default useFetchList
