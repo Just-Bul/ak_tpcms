@@ -228,6 +228,9 @@ file-count change (e.g. the Placement/Training list views previously had 4 indep
 All of the following were confirmed by reading backend source and, in several cases, live
 end-to-end testing against the running server — not assumed from the frontend side:
 
+> [!TIP]
+> **Subsequent Backend Enhancements**: Features such as the student document repository (`student_document_table`), dynamic student filtering (by CGPA, Regular vs. Alumni, Semester, Branch, Graduation Year, Backlogs), broadcast notifications with per-student eligibility calculations, open opportunity browsing, and T&P Cell exclusive verification have since been implemented on the backend. Refer to [FRONTEND_INTEGRATION_GUIDE.md](file:///D:/Project%20Files/Program%20Projects/Node/Internship-Full/FRONTEND_INTEGRATION_GUIDE.md) and [api_documentation.md](file:///D:/Project%20Files/Program%20Projects/Node/Internship-Full/backend/api_documentation.md) for details.
+
 - **Interview scheduling** has no backend model at all — browser-local only, per your decision.
 - **View counts** have no backend field — browser-local only, matching the task's own fallback
   instruction.

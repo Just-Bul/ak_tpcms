@@ -24,6 +24,7 @@ export type StudentCreateData = {
     is_graduate?: boolean | undefined;
     graduation_year?: number | null | undefined;
     grade_card_url?: string | null | undefined;
+    has_backlog?: boolean | undefined;
 };
 export type StudentRegisterInput = z.infer<typeof studentRegisterSchema>['body'];
 

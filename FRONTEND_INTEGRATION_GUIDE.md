@@ -419,19 +419,24 @@ export const NotificationFeed = () => {
 
 ---
 
-## 7. Graduation Year Management & Updates
+## 7. Profile Updates, Graduation Year & Backlog Management
 
-### Supported Endpoints for Updating Graduation Year
+### Supported Endpoints for Updating Graduation Year & Backlog Status
+
+Both `graduation_year` (or `passing_year`) and `has_backlog` can be updated dynamically or set at account registration.
 
 #### A. Student Self-Update
 * **Route**: `PUT /students/me`
-* **Access**: Logged-in Student
+* **Access**: Logged-in Student (`Role.Student = 2`)
 * **Payload**:
   ```json
   {
+    "has_backlog": false,
     "graduation_year": 2025,
-    "graduation": true,
-    "status": "alumni"
+    "graduation": false,
+    "status": "regular",
+    "cgpa": 8.5,
+    "grade_card_url": "/public/document_media/172044-gradecard.pdf"
   }
   ```
   *(Both `graduation_year` and `passing_year` are accepted by the backend).*
@@ -442,6 +447,7 @@ export const NotificationFeed = () => {
 * **Payload**:
   ```json
   {
+    "has_backlog": false,
     "graduation_year": 2024,
     "graduation": true,
     "status": "alumni",
@@ -453,10 +459,32 @@ export const NotificationFeed = () => {
 #### C. Student Registration
 * **Route**: `POST /students`
 * **Access**: `SuperAdmin` (Role 1)
-* **Payload**: Accepts `graduation_year` and `graduation` directly when creating student accounts.
+* **Payload**: Accepts `has_backlog` (boolean, defaults to `false`), `graduation` (boolean, defaults to `false`), and `graduation_year` (number) directly when creating student accounts:
+  ```json
+  {
+    "name": "Jane Doe",
+    "email": "jane@college.edu",
+    "password": "Password123!",
+    "roll_no": "21BCE045",
+    "department_id": 1,
+    "semester_id": 6,
+    "has_backlog": false,
+    "graduation": false,
+    "graduation_year": 2025
+  }
+  ```
+
+#### D. Filtering by Backlog Status
+Admins and Coordinators can filter students with or without active backlogs using the query string:
+```http
+GET /students?has_backlog=false
+GET /students?has_backlog=true
+```
 
 #### Automatic Backend Synchronization
-Updating `graduation_year` automatically:
+Updating `graduation_year` or `graduation: true`:
 1. Sets `student_table.graduation_year`.
 2. Upserts `alumni_table.passing_year` with the student's passing year.
 3. Synchronizes `graduation: true`, `is_graduate: true`, and `status: "Alumni"`.
+4. Conversely, setting `graduation: false` or `status: "regular"` marks the student as a currently enrolled regular student.
+

@@ -147,7 +147,8 @@ class Student {
                     is_graduate: isGraduateValue,
                     graduation: isGraduateValue,
                     graduation_year: studentData.graduation_year ?? null,
-                    grade_card_url: studentData.grade_card_url ?? null
+                    grade_card_url: studentData.grade_card_url ?? null,
+                    has_backlog: studentData.has_backlog ?? false
                 }
             });
 
