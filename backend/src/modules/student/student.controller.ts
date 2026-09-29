@@ -85,10 +85,10 @@ export const getStudentController = async (
         const studentList = await getStudentService(req.user as UserJwtPayload, filter);
         const sanitizedList = studentList.map((student: any) => {
             const sanitized = Data.sanitize(student);
-            const isGraduateStatus = Boolean(sanitized.graduation ?? sanitized.is_graduate);
-            sanitized.graduation = isGraduateStatus;
-            sanitized.is_graduate = isGraduateStatus;
-            sanitized.status = isGraduateStatus ? "Alumni" : "Regular";
+            sanitized.student_status = student.student_status ?? (student.is_graduate ? "ALUMNI" : "ACTIVE");
+            sanitized.graduation = Boolean(student.graduation ?? student.is_graduate);
+            sanitized.is_graduate = Boolean(student.is_graduate);
+            sanitized.has_backlog = Boolean(student.has_backlog);
             sanitized.graduation_year = student.graduation_year ?? student.alumni_table?.passing_year ?? null;
             sanitized.grade_card_url = student.grade_card_url ?? null;
             sanitized.alumni_details = student.alumni_table ?? null;
@@ -113,7 +113,7 @@ export const getStudentMeController = async (
     try {
         const actor = req.user as UserJwtPayload;
         const student: any = await getStudentByIdService(actor.auth_user_id, actor);
-        const isGraduateStatus = Boolean(student.graduation ?? student.is_graduate);
+        const studentStatus = student.student_status ?? (student.is_graduate ? "ALUMNI" : "ACTIVE");
         res.status(200).json({
             success: true,
             message: "Successfully fetched profile",
@@ -139,10 +139,11 @@ export const getStudentMeController = async (
                 image_url: student.image_url,
                 resume_url: student.resume_url,
                 grade_card_url: student.grade_card_url,
+                has_backlog: Boolean(student.has_backlog),
                 graduation_year: student.graduation_year ?? student.alumni_table?.passing_year ?? null,
-                graduation: isGraduateStatus,
-                is_graduate: isGraduateStatus,
-                status: isGraduateStatus ? "Alumni" : "Regular",
+                graduation: Boolean(student.graduation ?? student.is_graduate),
+                is_graduate: Boolean(student.is_graduate),
+                student_status: studentStatus,
                 alumni_details: student.alumni_table ?? null,
                 documents: student.student_document_table ?? []
             }
@@ -161,7 +162,7 @@ export const getStudentByIdController = async (
         const actor = req.user as UserJwtPayload;
         const { user_id } = req.params as StudentIdParamInput;
         const student: any = await getStudentByIdService(Number(user_id), actor);
-        const isGraduateStatus = Boolean(student.graduation ?? student.is_graduate);
+        const studentStatus = student.student_status ?? (student.is_graduate ? "ALUMNI" : "ACTIVE");
         res.status(200).json({
             success: true,
             message: "Successfully fetched student profile",
@@ -187,10 +188,11 @@ export const getStudentByIdController = async (
                 image_url: student.image_url,
                 resume_url: student.resume_url,
                 grade_card_url: student.grade_card_url,
+                has_backlog: Boolean(student.has_backlog),
                 graduation_year: student.graduation_year ?? student.alumni_table?.passing_year ?? null,
-                graduation: isGraduateStatus,
-                is_graduate: isGraduateStatus,
-                status: isGraduateStatus ? "Alumni" : "Regular",
+                graduation: Boolean(student.graduation ?? student.is_graduate),
+                is_graduate: Boolean(student.is_graduate),
+                student_status: studentStatus,
                 alumni_details: student.alumni_table ?? null,
                 documents: student.student_document_table ?? []
             }
@@ -200,9 +202,6 @@ export const getStudentByIdController = async (
     }
 }
 
-// ==========================================
-// Student Document Controllers
-// ==========================================
 
 export const addStudentDocumentController = async (
     req: Request<{}, {}, StudentDocumentCreateInput>,

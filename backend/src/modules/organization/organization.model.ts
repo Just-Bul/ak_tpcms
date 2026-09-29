@@ -51,7 +51,8 @@ class Organization {
             const newOrganization = await tx.organization_table.create({
                 data: {
                     user_id: newUser.user_id,
-                    sector_id: organizationData.sector_id ?? null
+                    sector_id: organizationData.sector_id ?? null,
+                    document_url: organizationData.document_url ?? null
                 }
             });
 

@@ -8,6 +8,11 @@ import { check } from "./check";
 const normalizeOrganization = (organization) => ({
   ...organization,
 
+  name:
+    organization.name ||
+    organization.user_table?.name ||
+    "",
+
   email:
     organization.email ||
     organization.user_table?.email ||
@@ -20,6 +25,9 @@ const normalizeOrganization = (organization) => ({
 
   remarks:
     organization.remarks || "",
+
+  document_url:
+    organization.document_url || "",
 });
 
 const normalizeOrganizations = (organizations = []) =>

@@ -21,7 +21,7 @@ import masterRouter from "./modules/master/master.routes.js";
 import morgan from "morgan";    
 import notesRouter from "./modules/notes/notes.route.js";
 import notificationRouter from "./modules/notification/notification.route.js";
-
+import { sectorRouter } from "./modules/sector/sector.routes.js";
 
 const app = express();
 
@@ -53,7 +53,7 @@ app.use("/categories", categoryRoute);
 app.use("/divisions", divisionRoute);
 app.use("/genders", genderRoute);
 app.use("/semesters", semesterRoute);
-
+app.use("/sectors", sectorRouter);
 app.use(errorHandler);
 
 export default app;

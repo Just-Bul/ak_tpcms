@@ -17,7 +17,8 @@ export const registerOrganizationService = async (input: OrganizationRegisterInp
         email: input.email,
         mobile_no: input.mobile_no,
         password: input.password,
-        sector_id: input.sector_id ?? null
+        sector_id: input.sector_id ?? null,
+        document_url: (input as any).document_url ?? null
     });
 
     if (!newOganization) {
