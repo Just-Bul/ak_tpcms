@@ -86,9 +86,22 @@ class Student {
                     user_id: newUser.user_id,
                     roll_no: studentData.roll_no,
                     department_id: studentData.department_id ?? null,
-                    semester_id: studentData.semester_id ?? null
+                    semester_id: studentData.semester_id ?? null,
+                    is_graduate: isGraduateValue,
+                    graduation: isGraduateValue,
+                    graduation_year: studentData.graduation_year ?? null,
+                    grade_card_url: studentData.grade_card_url ?? null
                 }
             });
+
+            if (isGraduateValue && studentData.graduation_year) {
+                await tx.alumni_table.create({
+                    data: {
+                        user_id: newUser.user_id,
+                        passing_year: studentData.graduation_year
+                    }
+                });
+            }
 
             return newStudent;
         });

@@ -126,14 +126,14 @@ The database utilizes specific static integer IDs for roles:
 | | `/trainings/` | `GET` | All Authenticated | Get list of trainings (filtered by role eligibility) |
 | | `/trainings/:training_id` | `GET` | All Authenticated | Get details of a single training program |
 | **Training Applications** | `/training-applications` | `POST` | `Student` | Apply for a training program |
-| | `/training-applications/:training_id/students/:student_id`| `PATCH` | `Org`, `Coordinator`, `SuperAdmin` | Update training application status (approve/reject) |
+| | `/training-applications/:training_id/students/:student_id`| `PATCH` | `Coordinator`, `SuperAdmin` | Update training application status (approve/reject). Org (Role 4) forbidden. |
 | | `/training-applications` | `GET` | All Authenticated | View training applications submitted/received |
 | | `/training-applications/:training_id/students/:student_id` | `GET` | All Authenticated | View details of a single training application |
 | **Placement**| `/placements` | `POST` | `Org`, `SuperAdmin`, `Coordinator` | Create a new placement program |
 | | `/placements/` | `GET` | All Authenticated | Get list of placements (filtered by role eligibility) |
-| | `/placements/:placement_id` | `GET` | All Authenticated | Get details of a single placement program |
+| | `/placements/:placement_id` | `GET` | All Authenticated | Get details of a single placement program (open to all students) |
 | **Placement Applications** | `/placement-applications` | `POST` | `Student` | Apply for a placement program |
-| | `/placement-applications/:placement_id/students/:student_id/status`| `PATCH` | `Org`, `Coordinator`, `SuperAdmin` | Approve a student's placement application |
+| | `/placement-applications/:placement_id/students/:student_id/status`| `PATCH` | `Coordinator`, `SuperAdmin` | Approve a student's placement application. Org (Role 4) forbidden. |
 | | `/placement-applications` | `GET` | All Authenticated | View placement applications submitted/received |
 | | `/placement-applications/:placement_id/students/:student_id` | `GET` | All Authenticated | View details of a single placement application |
 | **Dashboard** | `/dashboards` | `GET` | `Student`, `Coordinator`, `SuperAdmin` | Retrieve role-specific dashboard metrics |
@@ -141,6 +141,7 @@ The database utilizes specific static integer IDs for roles:
 | | `/upload/banner` | `POST` | Public | Upload a single banner image (`media`) |
 | | `/upload/notes` | `POST` | Public | Upload multiple notes files (`media`) |
 | | `/upload/resume` | `POST` | Public | Upload a single resume PDF/document (`media`) |
+| | `/upload/document` | `POST` | Public | Upload a student document / grade card (`media`) |
 | **Department** | `/departments/register` | `POST` | `SuperAdmin` | Register a new department |
 | | `/departments/` | `GET` | Public | List all departments |
 | | `/departments/:department_id` | `PATCH` | `SuperAdmin` | Update department details and coordinator |
@@ -294,12 +295,12 @@ The database utilizes specific static integer IDs for roles:
     "roll_no": "20BCE0012",
     "email": "student@domain.com",
     "password": "securepassword",
-    "mobile_no": "1234567890",
-    "gender_id": 2, // Frontend must convert gender text to gender_id
-    "department_id": 1, // Frontend must convert department text to department_id
-    "semester_id": 6, // Frontend must convert semester text to semester_id
     "name": "Jane Doe",
-    "age": "21"
+    "department_id": 1,
+    "semester_id": 6,
+    "has_backlog": false, // optional (defaults to false)
+    "graduation": false, // optional (defaults to false)
+    "graduation_year": 2025 // optional (sets passing_year in alumni_table if graduated)
   }
   ```
 * **Success Response (Status: 201 Created)**:
@@ -310,11 +311,12 @@ The database utilizes specific static integer IDs for roles:
     "data": {
       "user_id": 6,
       "roll_no": "20BCE0012",
-      "name": "Jane Doe",
-      "age": "21",
       "semester_id": 6,
       "department_id": 1,
-      "gender_id": 2
+      "has_backlog": false,
+      "graduation": false,
+      "is_graduate": false,
+      "graduation_year": 2025
     }
   }
   ```
@@ -325,15 +327,25 @@ The database utilizes specific static integer IDs for roles:
 * **Body Requirements (Optional properties)**:
   ```json
   {
+    "name": "Jane Doe",
     "email": "new-email@domain.com",
     "mobile_no": "0987654321",
     "has_backlog": false,
-    "cgpa": 8.75, // numeric decimal
+    "cgpa": 8.75,
     "tenth_division_id": 1,
     "twelfth_division_id": 1,
     "category_id": 2,
+    "gender_id": 2,
+    "department_id": 1,
+    "semester_id": 6,
+    "date_of_birth": "2002-05-15",
     "resume_url": "https://storage.provider.com/resumes/my_resume.pdf",
-    "image_url": "https://storage.provider.com/images/my_photo.png"
+    "image_url": "https://storage.provider.com/images/my_photo.png",
+    "grade_card_url": "https://storage.provider.com/documents/my_gradecard.pdf",
+    "graduation": false,
+    "graduation_year": 2025, // or passing_year
+    "status": "regular", // "regular" | "alumni"
+    "skills": ["React", "TypeScript", "Node.js"]
   }
   ```
 * **Success Response (Status: 200 OK)**:
@@ -348,8 +360,7 @@ The database utilizes specific static integer IDs for roles:
 #### 3. Update Student Profile as Admin
 * **Path**: `PUT /students/:user_id`
 * **Auth**: `SuperAdmin` (Role 1)
-* **Body Requirements (Optional properties)**: Same as Student self update, but also allows `roll_no`, `gender_id`, `department_id`, `semester_id`, `name`, `age`, and `is_graduate` (boolean).
-
+* **Body Requirements (Optional properties)**: Same as Student self update, but also allows `roll_no`, `gender_id`, `department_id`, `semester_id`, `name`, `age`, `is_graduate` (boolean), `current_company`, and `designation`.
 #### 4. Retrieve Own Student Profile
 * **Path**: `GET /students/me`
 * **Auth**: `Student` (Role 2)
@@ -577,6 +588,7 @@ The database utilizes specific static integer IDs for roles:
 * **Path**: `GET /trainings/:training_id`
 * **Auth**: `Student` (Role 2), `Org` (Role 4), `Coordinator` (Role 3), `SuperAdmin` (Role 1)
 * **Path Params**: `training_id` (numeric)
+*(Note: Accessible by all authenticated students regardless of CGPA or eligibility criteria to allow open browsing of training programs. Application submission at `POST /training-applications` strictly enforces eligibility).*
 * **Success Response (Status: 201 Created)**:
   > [!NOTE]
   > This endpoint returns a status code of **201 Created** instead of 200 due to backend controller configuration.
@@ -624,7 +636,7 @@ The database utilizes specific static integer IDs for roles:
 
 #### 2. Update Application Status (Approve/Reject)
 * **Path**: `PATCH /training-applications/:training_id/students/:student_id` (Note: No `/status` suffix)
-* **Auth**: `Organization` (Role 4), `Coordinator` (Role 3), `SuperAdmin` (Role 1)
+* **Auth**: `Coordinator` (Role 3), `SuperAdmin` (Role 1) *(Role 4 / Organization receives 403 Forbidden - application verification is strictly reserved for T&P Cell)*
 * **Path Params**: 
   - `student_id`: number (Target student user ID)
   - `training_id`: number (Target training program ID)
@@ -806,6 +818,7 @@ The database utilizes specific static integer IDs for roles:
 * **Path**: `GET /placements/:placement_id`
 * **Auth**: `Student` (Role 2), `Organization` (Role 4), `Coordinator` (Role 3), `SuperAdmin` (Role 1)
 * **Path Params**: `placement_id` (numeric)
+*(Note: Accessible by all authenticated students regardless of CGPA or eligibility criteria to allow open browsing of job postings. Application submission at `POST /placement-applications` strictly enforces eligibility).*
 * **Success Response (Status: 200 OK)**:
   ```json
   {
@@ -850,7 +863,7 @@ The database utilizes specific static integer IDs for roles:
 
 #### 2. Approve Application
 * **Path**: `PATCH /placement-applications/:placement_id/students/:student_id/status`
-* **Auth**: `Organization` (Role 4), `Coordinator` (Role 3), `SuperAdmin` (Role 1)
+* **Auth**: `Coordinator` (Role 3), `SuperAdmin` (Role 1) *(Role 4 / Organization receives 403 Forbidden - application verification is strictly reserved for T&P Cell)*
 * **Path Params**:
   - `placement_id`: number (Target placement ID)
   - `student_id`: number (Target student user ID)
@@ -1026,6 +1039,21 @@ These endpoints receive file uploads and store them locally inside the `public/`
     "success": true,
     "message": "File uploaded successfully",
     "fileUrl": "http://localhost:5000/public/resume_media/1720442300000-my_resume.pdf"
+  }
+  ```
+
+#### 5. Student Document & Grade Card Upload
+* **Path**: `POST /upload/document`
+* **Auth**: Public
+* **Destination Directory**: `public/document_media/`
+* **Allowed Types**: PDF, PNG, JPG, JPEG
+* **Form Field**: `media` (multipart/form-data)
+* **Success Response (Status: 200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "File uploaded successfully",
+    "fileUrl": "http://localhost:5000/public/document_media/1720442300000-grade_card.pdf"
   }
   ```
 
