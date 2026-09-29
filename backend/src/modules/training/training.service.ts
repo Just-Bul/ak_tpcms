@@ -79,24 +79,11 @@ export const disableOneTrainingService = async (training_id: number, actor: User
 }
 
 export const getOneTrainingService = async (trainind_id: number, actor: UserJwtPayload): Promise<ITraining> => {
-    switch (actor.auth_role_id) {
-        case Role.Student:
-            const eligibleTraining = await Training.findOneEligibleById(trainind_id, actor.auth_user_id);
-            if (!eligibleTraining) {
-                throw new ApiError(500, "Could not find eligible training");
-            }
-            return eligibleTraining;
-        case Role.Organization:
-        case Role.Coordinator:
-        case Role.SuperAdmin:
-            const creatorTraining = await Training.findById(trainind_id);
-            if (!creatorTraining) {
-                throw new ApiError(500, "Could not find training");
-            }
-            return creatorTraining;
-        default:
-            throw new ApiError(404, "Invalid Role");
+    const training = await Training.findById(trainind_id);
+    if (!training) {
+        throw new ApiError(404, "Could not find training");
     }
+    return training;
 }
 
 export const checkStudentTrainingEligibilitySerivce = async (training_id: number, actor: UserJwtPayload): Promise<TrainingEligibilityResult> => {

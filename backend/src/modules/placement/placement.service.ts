@@ -75,24 +75,11 @@ export const getPlacementService = async (actor: UserJwtPayload): Promise<IPlace
 }
 
 export const getOnePlacementService = async (placement_id: number, actor: UserJwtPayload): Promise<IPlacement> => {
-    switch (actor.auth_role_id) {
-        case Role.Student:
-            const eligiblePlacement = await Placement.findOneEligibleById(placement_id, actor.auth_user_id);
-            if (!eligiblePlacement) {
-                throw new ApiError(500, "Could not find eligible placement");
-            }
-            return eligiblePlacement;
-        case Role.Organization:
-        case Role.Coordinator:
-        case Role.SuperAdmin:
-            const creatorPlacement = await Placement.findById(placement_id);
-            if (!creatorPlacement) {
-                throw new ApiError(500, "Could not find placement");
-            }
-            return creatorPlacement;
-        default:
-            throw new ApiError(404, "Invalid Role");
+    const placement = await Placement.findById(placement_id);
+    if (!placement) {
+        throw new ApiError(404, "Could not find placement");
     }
+    return placement;
 }
 
 export const checkStudentPlacementEligibilityService = async (placement_id: number, actor: UserJwtPayload): Promise<PlacementEligibilityResult> => {

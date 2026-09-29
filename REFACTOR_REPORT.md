@@ -1,14 +1,10 @@
 # TPCMS Frontend Refactor — Final Report
 
-Scope: frontend only (`frontend/`), React + Vite + Tailwind v4. No backend code, database
-schema, API endpoints, request/response formats, or business logic were changed at any point.
-`backend/` gained only two new *documentation* files (`openapi.yaml`/`swagger.json`,
-`DATABASE_RECOMMENDATIONS.md`) and this report at the repo root — no source files there were
-touched.
+> [!NOTE]
+> **Update Note**: This report documents the frontend consolidation and component refactoring phase (`frontend/`). Several backend limitations previously noted in §7 (such as student document repositories, alumni/regular filtering by graduation year, notification eligibility broadcasts, and T&P Cell exclusive application verification) have since been implemented on the backend. For the active backend API contracts and frontend consumption guide, refer to [FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md) and [backend/api_documentation.md](backend/api_documentation.md).
 
-`frontend/` already had its own git repository with real history before this work started, so
-every phase below is a normal, revertible set of commits (left for you to commit — none were
-made automatically per your instruction).
+Scope: frontend only (`frontend/`), React + Vite + Tailwind v4. No backend code, database
+schema, API endpoints, request/response formats, or business logic were changed during that refactoring phase.
 
 ---
 

@@ -13,7 +13,18 @@ import type { ParamsDictionary } from "express-serve-static-core";
 
 export interface IStudent extends student_table {};
 
-export type StudentCreateData = Omit<Prisma.student_tableCreateManyInput, 'user_id'> & Omit<Prisma.user_tableCreateManyInput, 'role_id'>;
+export type StudentCreateData = {
+    roll_no: string;
+    email: string;
+    password: string;
+    name: string;
+    department_id?: number | null | undefined;
+    semester_id?: number | null | undefined;
+    graduation?: boolean | undefined;
+    is_graduate?: boolean | undefined;
+    graduation_year?: number | null | undefined;
+    grade_card_url?: string | null | undefined;
+};
 export type StudentRegisterInput = z.infer<typeof studentRegisterSchema>['body'];
 
 export type StudentUpdateData = Prisma.student_tableUncheckedUpdateInput & 

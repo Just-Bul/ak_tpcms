@@ -8,7 +8,10 @@ export const studentRegisterSchema = z.object({
         password: z.string().min(6, "Password must be atleast 6 characters"),
         name: z.string("Name must be provided as a string"),
         department_id: z.number("Department must be converted to department id"),
-        semester_id: z.number("Semester id must be converted to semester id")
+        semester_id: z.number("Semester id must be converted to semester id"),
+        graduation: z.boolean().optional(),
+        is_graduate: z.boolean().optional(),
+        graduation_year: z.number().optional()
     }).strict()
 });
 
