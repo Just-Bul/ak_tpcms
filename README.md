@@ -73,10 +73,11 @@ The system supports four distinct user roles:
 * Only the T&P Cell (`SuperAdmin` and `Coordinator`) can approve/reject candidates.
 * All approvals record an immutable audit trail (`verified_by`, `verified_at`).
 
-### E. Student Status & Alumni Management
+### E. Student Status, Alumni Management & Profile Updates
 * **Regular**: Current enrolled students (`graduation = false`, `is_graduate = false`).
 * **Alumni**: Graduated students (`graduation = true`, `is_graduate = true`) with passing year, company, and designation tracked in `alumni_table`.
-* Filter students dynamically by CGPA grade, status (regular/alumni), branch, semester, graduation year, and search keywords.
+* Filter students dynamically by CGPA grade, status (regular/alumni), branch, semester, graduation year, backlog status (`has_backlog`), and search keywords.
+* Update graduation year, status, and backlog flags dynamically via student self-update (`PUT /students/me`), admin update (`PUT /students/:user_id`), or during registration (`POST /students`).
 
 ---
 
