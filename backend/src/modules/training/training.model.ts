@@ -7,9 +7,42 @@ import type { TrainingCreateData } from "./training.type.js";
 class Training {
     static async findById(training_id: number) {
         const training = await prisma.training_table.findUnique({
-            where: {training_id}
+            where: { training_id },
+            include: {
+                training_department_table: true,
+                training_semester_table: true,
+                user_table: {
+                    include: {
+                        organization_table: {
+                            include: {
+                                sector_table: true
+                            }
+                        }
+                    }
+                }
+            }
         });
         return training;
+    }
+
+    static async findAll() {
+        const trainingList = await prisma.training_table.findMany({
+            include: {
+                training_department_table: true,
+                training_semester_table: true,
+                user_table: {
+                    include: {
+                        organization_table: {
+                            include: {
+                                sector_table: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return trainingList;
     }
 
     static async create(trainingData: TrainingCreateData) {

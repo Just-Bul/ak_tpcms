@@ -1,359 +1,214 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardShell from "../../../components/DashboardShell";
-import {
-  Card,
-  CardBody,
-  Button,
-  Input,
-  Badge,
-} from "../../../components/ui";
-import {
-  Search,
-  Users,
-  Eye,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
-import { api } from "../../../services/api";
+import { motion } from "framer-motion";
 
-export default function ViewStudents() {
+import {
+  Users,
+  Briefcase,
+  Bell,
+  FileText,
+  TrendingUp,
+  TrendingDown,
+  UserCheck,
+  Filter,
+  Megaphone,
+  ClipboardList,
+} from "lucide-react";
+
+import DashboardShell from "../../../components/DashboardShell";
+import api from "../../../services/api";
+
+export default function Dashboard() {
   const navigate = useNavigate();
 
-  const [students, setStudents] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-
-  const [search, setSearch] = useState("");
-
-  const [error, setError] = useState("");
+  const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
-    loadStudents();
+    api
+      .get("/dashboards")
+      .then((res) => setMetrics(res?.data || null))
+      .catch(() => setMetrics(null));
   }, []);
 
-  async function loadStudents() {
-    try {
-      setLoading(true);
+  const statsData = [
+    {
+      id: "dept-students",
+      label: "Department Students",
+      value: metrics?.studentCount ?? "—",
+      change: 5.2,
+      icon: Users,
+      color: "violet",
+      view: "students",
+    },
+    {
+      id: "orgs",
+      label: "Organizations",
+      value: metrics?.organizationCount ?? "—",
+      change: 8.3,
+      icon: Briefcase,
+      color: "cyan",
+      view: "organizations",
+    },
+    {
+      id: "applications",
+      label: "Placement Applications",
+      value: metrics?.placementApplicationCount ?? "—",
+      change: 12.8,
+      icon: UserCheck,
+      color: "emerald",
+      view: "placement-applications",
+    },
+    {
+      id: "training",
+      label: "Training Applications",
+      value: metrics?.trainingApplicationCount ?? "—",
+      change: 33.3,
+      icon: Bell,
+      color: "amber",
+      view: "training-applications",
+    },
+  ];
 
-      setError("");
-
-      const res = await api.get("/students");
-
-      setStudents(res.data || []);
-
-    } catch (err) {
-
-      setError(
-        err?.response?.data?.message ||
-        err.message ||
-        "Unable to fetch students."
-      );
-
-    } finally {
-
-      setLoading(false);
-
-    }
-  }
-
-  const filteredStudents = useMemo(() => {
-
-    return students.filter((student) => {
-
-      const keyword = search.toLowerCase();
-
-      return (
-        student.user_table?.name?.toLowerCase().includes(keyword) ||
-        student.roll_no?.toLowerCase().includes(keyword) ||
-        student.user_table?.email
-          ?.toLowerCase()
-          .includes(keyword)
-      );
-
-    });
-
-  }, [students, search]);
-    return (
+  return (
     <DashboardShell
-      title="Department Students"
-      subtitle="View students of your department"
+      title="Coordinator Dashboard"
+      subtitle="Manage department training and placement activities."
     >
-      <div className="space-y-6">
+      {/* ==========================================================
+          STATISTICS CARDS
+      ========================================================== */}
 
-        {/* Header */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statsData.map((stat, i) => {
+          const colors = {
+            violet: {
+              bg: "bg-violet-500/15",
+              text: "text-violet-400",
+            },
+            cyan: {
+              bg: "bg-cyan-500/15",
+              text: "text-cyan-400",
+            },
+            emerald: {
+              bg: "bg-emerald-500/15",
+              text: "text-emerald-400",
+            },
+            amber: {
+              bg: "bg-amber-500/15",
+              text: "text-amber-400",
+            },
+          }[stat.color];
 
-        <Card>
-          <CardBody>
+          const isPositive = stat.change >= 0;
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          return (
+            <motion.div
+              key={stat.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.35,
+                delay: i * 0.07,
+              }}
+              onClick={() => {
+                if (stat.view) {
+                  navigate(
+                    `/coordinator/dashboard?view=${stat.view}`
+                  );
+                }
+              }}
+              className={`rounded-xl border border-orbit-border bg-orbit-surface p-5 transition-colors hover:border-orbit-border2 ${
+                stat.view ? "cursor-pointer" : ""
+              }`}
+            >
+              <div className="mb-4 flex items-start justify-between">
+                <div className={`rounded-lg p-2 ${colors.bg}`}>
+                  <stat.icon
+                    className={`h-4 w-4 ${colors.text}`}
+                  />
+                </div>
 
-              <div className="relative w-full md:max-w-sm">
+                <div
+                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                    isPositive
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-red-500/10 text-red-400"
+                  }`}
+                >
+                  {isPositive ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
 
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-
-                <Input
-                  placeholder="Search student..."
-                  className="pl-10"
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                />
-
+                  {Math.abs(stat.change)}%
+                </div>
               </div>
 
-              <Button
-                variant="outline"
-                icon={<RefreshCw size={16} />}
-                onClick={loadStudents}
-              >
-                Refresh
-              </Button>
-
-            </div>
-
-          </CardBody>
-        </Card>
-
-        {/* Error */}
-
-        {error && (
-
-          <Card>
-
-            <CardBody>
-
-              <p className="text-red-400 text-sm">
-
-                {error}
-
+              <p className="mb-1 text-xs font-medium text-slate-500">
+                {stat.label}
               </p>
 
-            </CardBody>
+              <p className="text-2xl font-bold tracking-tight text-slate-100">
+                {stat.value}
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
 
-          </Card>
+      {/* ==========================================================
+          QUICK ACTIONS
+      ========================================================== */}
 
-        )}
+      <div className="rounded-xl border border-orbit-border bg-orbit-surface p-5">
+        <h2 className="mb-4 text-sm font-semibold text-slate-200">
+          Quick Actions
+        </h2>
 
-        {/* Loading */}
-
-        {loading ? (
-
-          <Card>
-
-            <CardBody>
-
-              <div className="flex items-center justify-center gap-3 py-20">
-
-                <Loader2
-                  size={20}
-                  className="animate-spin"
-                />
-
-                Loading students...
-
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            {
+              icon: Filter,
+              label: "Filter Eligible",
+              view: "eligible",
+              color: "text-violet-400 bg-violet-500/10",
+            },
+            {
+              icon: ClipboardList,
+              label: "Applications",
+              view: "applications",
+              color: "text-cyan-400 bg-cyan-500/10",
+            },
+            {
+              icon: Megaphone,
+              label: "Post Notice",
+              view: "notices",
+              color: "text-emerald-400 bg-emerald-500/10",
+            },
+            {
+              icon: FileText,
+              label: "View Students",
+              view: "students",
+              color: "text-amber-400 bg-amber-500/10",
+            },
+          ].map((action) => (
+            <a
+              key={action.label}
+              href={`/coordinator/dashboard?view=${action.view}`}
+              className="flex items-center gap-3 rounded-lg border border-orbit-border p-3 transition-all hover:border-orbit-border2 hover:bg-white/3"
+            >
+              <div className={`rounded-lg p-2 ${action.color}`}>
+                <action.icon className="h-4 w-4" />
               </div>
 
-            </CardBody>
-
-          </Card>
-
-        ) : (
-
-          <Card>
-
-            <CardBody className="p-0">
-
-              <div className="overflow-x-auto">
-
-                <table className="w-full">
-
-                  <thead className="border-b border-orbit-border bg-orbit-surface2">
-
-                    <tr>
-
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-400">
-                        Student
-                      </th>
-
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-400">
-                        Roll No
-                      </th>
-
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-400">
-                        Email
-                      </th>
-
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-400">
-                        Department
-                      </th>
-
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-400">
-                        Semester
-                      </th>
-
-                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase text-slate-400">
-                        Status
-                      </th>
-
-                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase text-slate-400">
-                        Action
-                      </th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {filteredStudents.length === 0 ? (
-
-                      <tr>
-
-                        <td
-                          colSpan={7}
-                          className="py-16 text-center text-slate-500"
-                        >
-
-                          <Users
-                            size={40}
-                            className="mx-auto mb-3 opacity-30"
-                          />
-
-                          No students found.
-
-                        </td>
-
-                      </tr>
-
-                    ) : (
-
-                      filteredStudents.map((student) => (
-                                                <tr
-                          key={student.user_id}
-                          className="border-b border-orbit-border hover:bg-white/[0.02] transition-colors"
-                        >
-                          {/* Student */}
-
-                          <td className="px-5 py-4">
-
-                            <div>
-
-                              <p className="font-medium text-slate-200">
-
-                                {student.user_table.name}
-
-                              </p>
-
-                              <p className="text-xs text-slate-500">
-
-                                ID : {student.user_id}
-
-                              </p>
-
-                            </div>
-
-                          </td>
-
-                          {/* Roll Number */}
-
-                          <td className="px-5 py-4 text-slate-300">
-
-                            {student.roll_no}
-
-                          </td>
-
-                          {/* Email */}
-
-                          <td className="px-5 py-4 text-slate-400">
-
-                            {student.user_table?.email || "-"}
-
-                          </td>
-
-                          {/* Department */}
-
-                          <td className="px-5 py-4 text-slate-300">
-
-                            {student.department_table
-                              ?.department_name ||
-                              "-"}
-
-                          </td>
-
-                          {/* Semester */}
-
-                          <td className="px-5 py-4 text-slate-300">
-
-                            {student.semester_table
-                              ?.semester_name ||
-                              student.semester_id ||
-                              "-"}
-
-                          </td>
-
-                          {/* Status */}
-
-                          <td className="px-5 py-4 text-center">
-
-                            <Badge
-                              variant={
-                                student.is_graduate
-                                  ? "destructive"
-                                  : "success"
-                              }
-                            >
-                              {student.is_graduate
-                                ? "Graduated"
-                                : "Active"}
-                            </Badge>
-
-                          </td>
-
-                          {/* Action */}
-
-                          <td className="px-5 py-4">
-
-                            <div className="flex justify-center">
-
-                              <Button
-                                size="sm"
-                                icon={<Eye size={14} />}
-                                onClick={() =>
-                                  navigate(
-                                    `/coordinator/dashboard?view=student-details&id=${student.user_id}`
-                                  )
-                                }
-                              >
-                                View
-                              </Button>
-
-                            </div>
-
-                          </td>
-
-                        </tr>
-
-                      ))
-
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-            </CardBody>
-
-          </Card>
-
-        )}
-              </div>
+              <span className="text-sm font-medium text-slate-300">
+                {action.label}
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
     </DashboardShell>
   );
 }

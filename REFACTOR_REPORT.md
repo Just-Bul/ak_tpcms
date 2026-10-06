@@ -1,14 +1,10 @@
 # TPCMS Frontend Refactor — Final Report
 
-Scope: frontend only (`frontend/`), React + Vite + Tailwind v4. No backend code, database
-schema, API endpoints, request/response formats, or business logic were changed at any point.
-`backend/` gained only two new *documentation* files (`openapi.yaml`/`swagger.json`,
-`DATABASE_RECOMMENDATIONS.md`) and this report at the repo root — no source files there were
-touched.
+> [!NOTE]
+> **Update Note**: This report documents the frontend consolidation and component refactoring phase (`frontend/`). Several backend limitations previously noted in §7 (such as student document repositories, alumni/regular filtering by graduation year, notification eligibility broadcasts, and T&P Cell exclusive application verification) have since been implemented on the backend. For the active backend API contracts and frontend consumption guide, refer to [FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md) and [backend/api_documentation.md](backend/api_documentation.md).
 
-`frontend/` already had its own git repository with real history before this work started, so
-every phase below is a normal, revertible set of commits (left for you to commit — none were
-made automatically per your instruction).
+Scope: frontend only (`frontend/`), React + Vite + Tailwind v4. No backend code, database
+schema, API endpoints, request/response formats, or business logic were changed during that refactoring phase.
 
 ---
 
@@ -231,6 +227,9 @@ file-count change (e.g. the Placement/Training list views previously had 4 indep
 
 All of the following were confirmed by reading backend source and, in several cases, live
 end-to-end testing against the running server — not assumed from the frontend side:
+
+> [!TIP]
+> **Subsequent Backend Enhancements**: Features such as the student document repository (`student_document_table`), dynamic student filtering (by CGPA, Regular vs. Alumni, Semester, Branch, Graduation Year, Backlogs), broadcast notifications with per-student eligibility calculations, open opportunity browsing, and T&P Cell exclusive verification have since been implemented on the backend. Refer to [FRONTEND_INTEGRATION_GUIDE.md](file:///D:/Project%20Files/Program%20Projects/Node/Internship-Full/FRONTEND_INTEGRATION_GUIDE.md) and [api_documentation.md](file:///D:/Project%20Files/Program%20Projects/Node/Internship-Full/backend/api_documentation.md) for details.
 
 - **Interview scheduling** has no backend model at all — browser-local only, per your decision.
 - **View counts** have no backend field — browser-local only, matching the task's own fallback

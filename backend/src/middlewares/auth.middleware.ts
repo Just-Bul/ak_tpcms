@@ -10,7 +10,7 @@ declare global {
     }
 }
 
-export const authenticate = (allowedRoleIds?: number | number[]) => (
+export const authenticate = (allowedRoleIds: number | number[]) => (
     req: Request,
     res: Response,
     next: NextFunction

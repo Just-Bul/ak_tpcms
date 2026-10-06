@@ -120,6 +120,7 @@ export default function Dashboard() {
       value: metrics.studentCount,
       icon: Users,
       color: "text-violet-400",
+      view: "view-students",
     },
 
     {
@@ -127,6 +128,7 @@ export default function Dashboard() {
       value: metrics.departmentCount,
       icon: GraduationCap,
       color: "text-amber-400",
+      view:"view-departments",
     },
 
     {
@@ -134,6 +136,7 @@ export default function Dashboard() {
       value: metrics.organizationCount,
       icon: Building2,
       color: "text-cyan-400",
+      view:"view-companies",
     },
 
     {
@@ -141,6 +144,7 @@ export default function Dashboard() {
       value: metrics.trainingCount,
       icon: ClipboardList,
       color: "text-emerald-400",
+      view:"training-activity",
     },
 
     {
@@ -148,6 +152,7 @@ export default function Dashboard() {
       value: metrics.placementCount,
       icon: BriefcaseBusiness,
       color: "text-pink-400",
+      view:"placement-activity",
     },
   ];
 
@@ -186,7 +191,11 @@ export default function Dashboard() {
             const Icon = card.icon;
 
             return (
-              <Card key={card.title}>
+              <Card key={card.title}
+               className="cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                onClick={()=>
+                  navigate(`/super-admin/dashboard?view=${card.view}`)
+                }>
                 <CardBody>
                   <div className="flex items-center justify-between">
                     <div>
@@ -225,7 +234,7 @@ export default function Dashboard() {
                   </h2>
                 </div>
 
-                <Badge variant="success">{metrics.trainingPercentage}%</Badge>
+                <Badge variant="success">{Number(metrics.trainingPercentage).toFixed(2)}%</Badge>
               </div>
 
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-orbit-surface2">
@@ -252,7 +261,7 @@ export default function Dashboard() {
                   </h2>
                 </div>
 
-                <Badge variant="success">{metrics.placementPercentage}%</Badge>
+                <Badge variant="success">{Number(metrics.placementPercentage).toFixed(2)}%</Badge>
               </div>
 
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-orbit-surface2">
@@ -645,7 +654,7 @@ export default function Dashboard() {
                 <p className="text-slate-500">Training Success</p>
 
                 <h2 className="mt-2 text-3xl font-bold text-emerald-400">
-                  {metrics.trainingPercentage}%
+                  {Number(metrics.trainingPercentage).toFixed(2)}%
                 </h2>
               </div>
 
@@ -653,7 +662,7 @@ export default function Dashboard() {
                 <p className="text-slate-500">Placement Success</p>
 
                 <h2 className="mt-2 text-3xl font-bold text-pink-400">
-                  {metrics.placementPercentage}%
+                  {Number(metrics.placementPercentage).toFixed(2)}%
                 </h2>
               </div>
             </div>
